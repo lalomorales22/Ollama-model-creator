@@ -77,11 +77,31 @@ class OllamaService {
             for (const line of lines) {
               try {
                 const data = JSON.parse(line);
+                
+                // Handle different types of status updates
                 if (data.status && onProgress) {
-                  onProgress(data.status);
+                  // Ensure status is a string
+                  const statusMessage = typeof data.status === 'string' ? data.status : JSON.stringify(data.status);
+                  onProgress(statusMessage);
                 }
+                
+                // Handle progress with additional context
+                if (data.digest && data.total && data.completed && onProgress) {
+                  const percent = Math.round((data.completed / data.total) * 100);
+                  onProgress(`${data.status || 'Processing'}: ${percent}%`);
+                }
+                
+                // Handle error responses
                 if (data.error) {
                   throw new Error(data.error);
+                }
+                
+                // Check if creation is complete
+                if (data.status === 'success' || (data.done && data.status)) {
+                  if (onProgress) {
+                    onProgress('Model created successfully!');
+                  }
+                  break;
                 }
               } catch (parseError) {
                 // Ignore JSON parse errors for incomplete chunks
@@ -174,9 +194,20 @@ class OllamaService {
             for (const line of lines) {
               try {
                 const data = JSON.parse(line);
+                
+                // Handle different types of status updates
                 if (data.status && onProgress) {
-                  onProgress(data.status);
+                  // Ensure status is a string
+                  const statusMessage = typeof data.status === 'string' ? data.status : JSON.stringify(data.status);
+                  onProgress(statusMessage);
                 }
+                
+                // Handle progress with additional context
+                if (data.digest && data.total && data.completed && onProgress) {
+                  const percent = Math.round((data.completed / data.total) * 100);
+                  onProgress(`${data.status || 'Downloading'}: ${percent}%`);
+                }
+                
                 if (data.error) {
                   throw new Error(data.error);
                 }

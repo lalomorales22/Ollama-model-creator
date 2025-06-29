@@ -292,20 +292,30 @@ SYSTEM """${modelConfig.systemPrompt || 'You are a helpful AI assistant.'}"""`;
       await ollamaService.createModel(
         modelConfig.name, 
         modelFile,
-        (status: string) => {
+        (statusMessage: string) => {
+          // Safely handle the status message
+          const status = statusMessage || 'Processing...';
           setCreationStatus(status);
           
-          // Update progress based on status messages
-          if (status.includes('pulling')) {
+          // Update progress based on status keywords
+          const statusLower = status.toLowerCase();
+          if (statusLower.includes('pulling') || statusLower.includes('downloading')) {
             setCreationProgress(20);
-          } else if (status.includes('verifying')) {
+          } else if (statusLower.includes('verifying') || statusLower.includes('verify')) {
             setCreationProgress(40);
-          } else if (status.includes('writing')) {
+          } else if (statusLower.includes('writing') || statusLower.includes('creating')) {
             setCreationProgress(60);
-          } else if (status.includes('using')) {
+          } else if (statusLower.includes('using') || statusLower.includes('finalizing')) {
             setCreationProgress(80);
-          } else if (status.includes('success')) {
+          } else if (statusLower.includes('success') || statusLower.includes('complete')) {
             setCreationProgress(100);
+          } else if (statusLower.includes('%')) {
+            // Try to extract percentage from status message
+            const percentMatch = status.match(/(\d+)%/);
+            if (percentMatch) {
+              const percent = parseInt(percentMatch[1]);
+              setCreationProgress(Math.min(percent, 95)); // Cap at 95% until complete
+            }
           }
         }
       );
