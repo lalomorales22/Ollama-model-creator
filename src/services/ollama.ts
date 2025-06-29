@@ -207,20 +207,37 @@ class OllamaService {
         continue;
       }
 
-      // Handle SYSTEM instruction to ensure proper quoting
+      // Handle SYSTEM instruction to ensure proper quoting - THIS IS THE FIX!
       if (trimmedLine.toUpperCase().startsWith('SYSTEM ')) {
         const systemContent = trimmedLine.substring(7).trim();
         
-        // Remove existing quotes and re-add proper triple quotes
+        // Remove any existing quotes completely
         let cleanContent = systemContent;
-        if (cleanContent.startsWith('"') && cleanContent.endsWith('"')) {
-          cleanContent = cleanContent.slice(1, -1);
-        } else if (cleanContent.startsWith("'") && cleanContent.endsWith("'")) {
-          cleanContent = cleanContent.slice(1, -1);
-        } else if (cleanContent.startsWith('"""') && cleanContent.endsWith('"""')) {
+        
+        // Remove triple quotes
+        if (cleanContent.startsWith('"""') && cleanContent.endsWith('"""')) {
           cleanContent = cleanContent.slice(3, -3);
         }
+        // Remove double quotes
+        else if (cleanContent.startsWith('"') && cleanContent.endsWith('"')) {
+          cleanContent = cleanContent.slice(1, -1);
+        }
+        // Remove single quotes
+        else if (cleanContent.startsWith("'") && cleanContent.endsWith("'")) {
+          cleanContent = cleanContent.slice(1, -1);
+        }
         
+        // Remove any additional nested quotes that might have been added by previous cleaning
+        while ((cleanContent.startsWith('"""') && cleanContent.endsWith('"""')) ||
+               (cleanContent.startsWith('"') && cleanContent.endsWith('"'))) {
+          if (cleanContent.startsWith('"""') && cleanContent.endsWith('"""')) {
+            cleanContent = cleanContent.slice(3, -3);
+          } else if (cleanContent.startsWith('"') && cleanContent.endsWith('"')) {
+            cleanContent = cleanContent.slice(1, -1);
+          }
+        }
+        
+        // Now add proper triple quotes
         cleanedLines.push(`SYSTEM """${cleanContent}"""`);
         continue;
       }
