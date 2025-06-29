@@ -44,16 +44,17 @@ class OllamaService {
 
   async createModel(name: string, modelfile: string, onProgress?: (progress: string) => void): Promise<void> {
     try {
-      // First, create a temporary file with the modelfile content
-      // Since we can't write files in the browser, we'll use the direct modelfile approach
+      // Validate and clean the modelfile before sending
+      const cleanedModelfile = this.cleanModelFile(modelfile);
+      
       const response = await fetch(`${OLLAMA_BASE_URL}/create`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          name,
-          modelfile,
+          name: name.trim(),
+          modelfile: cleanedModelfile,
           stream: true
         }),
       });
@@ -132,6 +133,67 @@ class OllamaService {
       console.error('Error creating model:', error);
       throw error;
     }
+  }
+
+  // Clean and validate ModelFile content
+  private cleanModelFile(modelfile: string): string {
+    const lines = modelfile.split('\n');
+    const cleanedLines: string[] = [];
+
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+      if (!trimmedLine) {
+        cleanedLines.push('');
+        continue;
+      }
+
+      // Handle PARAMETER lines specially to ensure proper numeric formatting
+      if (trimmedLine.toUpperCase().startsWith('PARAMETER ')) {
+        const parts = trimmedLine.split(/\s+/);
+        if (parts.length >= 3) {
+          const paramName = parts[1];
+          const paramValue = parts.slice(2).join(' ');
+          
+          // Clean numeric values
+          const cleanedValue = this.cleanParameterValue(paramName, paramValue);
+          cleanedLines.push(`PARAMETER ${paramName} ${cleanedValue}`);
+        } else {
+          cleanedLines.push(trimmedLine);
+        }
+      } else {
+        cleanedLines.push(trimmedLine);
+      }
+    }
+
+    return cleanedLines.join('\n');
+  }
+
+  // Clean parameter values to ensure they're properly formatted
+  private cleanParameterValue(paramName: string, value: string): string {
+    const numericParams = ['temperature', 'top_p', 'top_k', 'repeat_penalty', 'num_ctx', 'num_predict'];
+    
+    if (numericParams.includes(paramName.toLowerCase())) {
+      // Remove any non-numeric characters except decimal points
+      const cleaned = value.replace(/[^0-9.]/g, '');
+      const parsed = parseFloat(cleaned);
+      
+      if (isNaN(parsed)) {
+        // Return default values for common parameters
+        const defaults: Record<string, string> = {
+          'temperature': '0.8',
+          'top_p': '0.9',
+          'top_k': '40',
+          'repeat_penalty': '1.1',
+          'num_ctx': '2048',
+          'num_predict': '128'
+        };
+        return defaults[paramName.toLowerCase()] || '1.0';
+      }
+      
+      return parsed.toString();
+    }
+    
+    return value;
   }
 
   async deleteModel(name: string): Promise<void> {
@@ -292,77 +354,6 @@ class OllamaService {
     }
   }
 
-  // Alternative method using file-based approach (for when direct modelfile doesn't work)
-  async createModelWithFile(name: string, modelfile: string, onProgress?: (progress: string) => void): Promise<void> {
-    try {
-      // Create a blob URL for the modelfile content
-      const blob = new Blob([modelfile], { type: 'text/plain' });
-      const formData = new FormData();
-      formData.append('name', name);
-      formData.append('file', blob, 'Modelfile');
-
-      const response = await fetch(`${OLLAMA_BASE_URL}/create`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        let errorMessage = `Failed to create model: ${response.status} ${response.statusText}`;
-        
-        try {
-          const errorData = JSON.parse(errorText);
-          errorMessage = errorData.error || errorMessage;
-        } catch {
-          if (errorText) {
-            errorMessage = errorText;
-          }
-        }
-        
-        throw new Error(errorMessage);
-      }
-
-      // Handle streaming response
-      if (response.body && onProgress) {
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-
-        try {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-
-            const chunk = decoder.decode(value);
-            const lines = chunk.split('\n').filter(line => line.trim());
-
-            for (const line of lines) {
-              try {
-                const data = JSON.parse(line);
-                
-                if (data.status) {
-                  const statusMessage = typeof data.status === 'string' ? data.status : JSON.stringify(data.status);
-                  onProgress(statusMessage);
-                }
-                
-                if (data.error) {
-                  throw new Error(data.error);
-                }
-              } catch (parseError) {
-                if (parseError instanceof SyntaxError) continue;
-                throw parseError;
-              }
-            }
-          }
-        } finally {
-          reader.releaseLock();
-        }
-      }
-    } catch (error) {
-      console.error('Error creating model with file:', error);
-      throw error;
-    }
-  }
-
   // Validate ModelFile syntax before creating model
   validateModelFile(modelfile: string): { isValid: boolean; errors: string[] } {
     const errors: string[] = [];
@@ -386,6 +377,17 @@ class OllamaService {
       const parts = paramLine.split(/\s+/);
       if (parts.length < 3) {
         errors.push(`Invalid PARAMETER instruction: ${paramLine}`);
+      } else {
+        // Validate numeric parameters
+        const paramName = parts[1].toLowerCase();
+        const paramValue = parts[2];
+        
+        if (['temperature', 'top_p', 'top_k', 'repeat_penalty', 'num_ctx', 'num_predict'].includes(paramName)) {
+          const numValue = parseFloat(paramValue);
+          if (isNaN(numValue)) {
+            errors.push(`Invalid numeric value for ${paramName}: ${paramValue}`);
+          }
+        }
       }
     }
 

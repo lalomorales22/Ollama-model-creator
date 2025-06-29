@@ -151,15 +151,17 @@ export function CreateModel() {
       const baseModelMatch = content.match(/FROM\s+([^\s\n]+)/i);
       const baseModel = baseModelMatch ? baseModelMatch[1] : 'llama3.2';
       
-      // Extract parameters
+      // Extract parameters with better parsing
       const tempMatch = content.match(/PARAMETER\s+temperature\s+([^\s\n]+)/i);
       const ctxMatch = content.match(/PARAMETER\s+num_ctx\s+([^\s\n]+)/i);
       const topPMatch = content.match(/PARAMETER\s+top_p\s+([^\s\n]+)/i);
       const topKMatch = content.match(/PARAMETER\s+top_k\s+([^\s\n]+)/i);
       const repeatMatch = content.match(/PARAMETER\s+repeat_penalty\s+([^\s\n]+)/i);
       
-      // Extract system prompt
-      const systemMatch = content.match(/SYSTEM\s+["']([^"']*)/i);
+      // Extract system prompt with better handling of quotes
+      const systemMatch = content.match(/SYSTEM\s+["']([^"']*?)["']/i) || 
+                         content.match(/SYSTEM\s+"""([^"]*?)"""/i) ||
+                         content.match(/SYSTEM\s+(.+)/i);
       const systemPrompt = systemMatch ? systemMatch[1] : modelFile.system || '';
       
       setModelConfig({
@@ -202,15 +204,37 @@ export function CreateModel() {
     }
   };
 
+  // Sanitize and validate numeric inputs
+  const sanitizeNumericValue = (value: string, min: number, max: number, defaultValue: string): string => {
+    const cleaned = value.replace(/[^0-9.]/g, '');
+    const parsed = parseFloat(cleaned);
+    
+    if (isNaN(parsed)) {
+      return defaultValue;
+    }
+    
+    if (parsed < min) return min.toString();
+    if (parsed > max) return max.toString();
+    
+    return parsed.toString();
+  };
+
   const generateModelFile = () => {
+    // Sanitize all numeric values before generating the ModelFile
+    const sanitizedTemp = sanitizeNumericValue(modelConfig.temperature, 0.1, 2.0, '0.8');
+    const sanitizedCtx = sanitizeNumericValue(modelConfig.maxTokens, 512, 32768, '2048');
+    const sanitizedTopP = sanitizeNumericValue(modelConfig.topP, 0.1, 1.0, '0.9');
+    const sanitizedTopK = sanitizeNumericValue(modelConfig.topK, 1, 100, '40');
+    const sanitizedRepeat = sanitizeNumericValue(modelConfig.repeatPenalty, 0.5, 2.0, '1.1');
+
     return `FROM ${modelConfig.baseModel}
 
 # Model parameters
-PARAMETER temperature ${modelConfig.temperature}
-PARAMETER num_ctx ${modelConfig.maxTokens}
-PARAMETER top_p ${modelConfig.topP}
-PARAMETER top_k ${modelConfig.topK}
-PARAMETER repeat_penalty ${modelConfig.repeatPenalty}
+PARAMETER temperature ${sanitizedTemp}
+PARAMETER num_ctx ${sanitizedCtx}
+PARAMETER top_p ${sanitizedTopP}
+PARAMETER top_k ${sanitizedTopK}
+PARAMETER repeat_penalty ${sanitizedRepeat}
 
 # System message
 SYSTEM """${modelConfig.systemPrompt || 'You are a helpful AI assistant.'}"""`;
@@ -222,7 +246,7 @@ SYSTEM """${modelConfig.systemPrompt || 'You are a helpful AI assistant.'}"""`;
     // Validate model name
     if (!modelConfig.name.trim()) {
       errors.push('Model name is required');
-    } else if (!/^[a-zA-Z0-9_-]+$/.test(modelConfig.name)) {
+    } else if (!/^[a-zA-Z0-9_-]+$/.test(modelConfig.name.trim())) {
       errors.push('Model name can only contain letters, numbers, hyphens, and underscores');
     }
 
@@ -234,28 +258,28 @@ SYSTEM """${modelConfig.systemPrompt || 'You are a helpful AI assistant.'}"""`;
       }
     }
 
-    // Validate parameters
-    const temp = parseFloat(modelConfig.temperature);
+    // Validate parameters with proper numeric validation
+    const temp = parseFloat(modelConfig.temperature.replace(/[^0-9.]/g, ''));
     if (isNaN(temp) || temp < 0.1 || temp > 2.0) {
       errors.push('Temperature must be between 0.1 and 2.0');
     }
 
-    const ctx = parseInt(modelConfig.maxTokens);
+    const ctx = parseInt(modelConfig.maxTokens.replace(/[^0-9]/g, ''));
     if (isNaN(ctx) || ctx < 512 || ctx > 32768) {
       errors.push('Context length must be between 512 and 32768');
     }
 
-    const topP = parseFloat(modelConfig.topP);
+    const topP = parseFloat(modelConfig.topP.replace(/[^0-9.]/g, ''));
     if (isNaN(topP) || topP < 0.1 || topP > 1.0) {
       errors.push('Top P must be between 0.1 and 1.0');
     }
 
-    const topK = parseInt(modelConfig.topK);
+    const topK = parseInt(modelConfig.topK.replace(/[^0-9]/g, ''));
     if (isNaN(topK) || topK < 1 || topK > 100) {
       errors.push('Top K must be between 1 and 100');
     }
 
-    const repeatPenalty = parseFloat(modelConfig.repeatPenalty);
+    const repeatPenalty = parseFloat(modelConfig.repeatPenalty.replace(/[^0-9.]/g, ''));
     if (isNaN(repeatPenalty) || repeatPenalty < 0.5 || repeatPenalty > 2.0) {
       errors.push('Repeat penalty must be between 0.5 and 2.0');
     }
@@ -288,61 +312,36 @@ SYSTEM """${modelConfig.systemPrompt || 'You are a helpful AI assistant.'}"""`;
     try {
       const modelFile = generateModelFile();
       
-      // Try the standard approach first
-      try {
-        await ollamaService.createModel(
-          modelConfig.name, 
-          modelFile,
-          (statusMessage: string) => {
-            // Safely handle the status message
-            const status = statusMessage || 'Processing...';
-            setCreationStatus(status);
-            
-            // Update progress based on status keywords
-            const statusLower = status.toLowerCase();
-            if (statusLower.includes('pulling') || statusLower.includes('downloading')) {
-              setCreationProgress(20);
-            } else if (statusLower.includes('verifying') || statusLower.includes('verify')) {
-              setCreationProgress(40);
-            } else if (statusLower.includes('writing') || statusLower.includes('creating')) {
-              setCreationProgress(60);
-            } else if (statusLower.includes('using') || statusLower.includes('finalizing')) {
-              setCreationProgress(80);
-            } else if (statusLower.includes('success') || statusLower.includes('complete')) {
-              setCreationProgress(100);
-            } else if (statusLower.includes('%')) {
-              // Try to extract percentage from status message
-              const percentMatch = status.match(/(\d+)%/);
-              if (percentMatch) {
-                const percent = parseInt(percentMatch[1]);
-                setCreationProgress(Math.min(percent, 95)); // Cap at 95% until complete
-              }
+      await ollamaService.createModel(
+        modelConfig.name.trim(), 
+        modelFile,
+        (statusMessage: string) => {
+          // Safely handle the status message
+          const status = statusMessage || 'Processing...';
+          setCreationStatus(status);
+          
+          // Update progress based on status keywords
+          const statusLower = status.toLowerCase();
+          if (statusLower.includes('pulling') || statusLower.includes('downloading')) {
+            setCreationProgress(20);
+          } else if (statusLower.includes('verifying') || statusLower.includes('verify')) {
+            setCreationProgress(40);
+          } else if (statusLower.includes('writing') || statusLower.includes('creating')) {
+            setCreationProgress(60);
+          } else if (statusLower.includes('using') || statusLower.includes('finalizing')) {
+            setCreationProgress(80);
+          } else if (statusLower.includes('success') || statusLower.includes('complete')) {
+            setCreationProgress(100);
+          } else if (statusLower.includes('%')) {
+            // Try to extract percentage from status message
+            const percentMatch = status.match(/(\d+)%/);
+            if (percentMatch) {
+              const percent = parseInt(percentMatch[1]);
+              setCreationProgress(Math.min(percent, 95)); // Cap at 95% until complete
             }
           }
-        );
-      } catch (primaryError: any) {
-        // If the primary method fails with the "from/files" error, try the file-based approach
-        if (primaryError.message.includes('from') || primaryError.message.includes('files')) {
-          setCreationStatus('Trying alternative creation method...');
-          await ollamaService.createModelWithFile(
-            modelConfig.name,
-            modelFile,
-            (statusMessage: string) => {
-              const status = statusMessage || 'Processing...';
-              setCreationStatus(status);
-              
-              const statusLower = status.toLowerCase();
-              if (statusLower.includes('success') || statusLower.includes('complete')) {
-                setCreationProgress(100);
-              } else {
-                setCreationProgress(prev => Math.min(prev + 10, 90));
-              }
-            }
-          );
-        } else {
-          throw primaryError;
         }
-      }
+      );
       
       setCreationProgress(100);
       setCreationStatus('Model created successfully!');
@@ -601,11 +600,11 @@ SYSTEM """${modelConfig.systemPrompt || 'You are a helpful AI assistant.'}"""`;
               <div className="space-y-2 text-sm">
                 <div><strong>Name:</strong> {modelConfig.name || 'Not set'}</div>
                 <div><strong>Base Model:</strong> {modelConfig.baseModel}</div>
-                <div><strong>Temperature:</strong> {modelConfig.temperature}</div>
-                <div><strong>Context Length:</strong> {modelConfig.maxTokens}</div>
-                <div><strong>Top P:</strong> {modelConfig.topP}</div>
-                <div><strong>Top K:</strong> {modelConfig.topK}</div>
-                <div><strong>Repeat Penalty:</strong> {modelConfig.repeatPenalty}</div>
+                <div><strong>Temperature:</strong> {sanitizeNumericValue(modelConfig.temperature, 0.1, 2.0, '0.8')}</div>
+                <div><strong>Context Length:</strong> {sanitizeNumericValue(modelConfig.maxTokens, 512, 32768, '2048')}</div>
+                <div><strong>Top P:</strong> {sanitizeNumericValue(modelConfig.topP, 0.1, 1.0, '0.9')}</div>
+                <div><strong>Top K:</strong> {sanitizeNumericValue(modelConfig.topK, 1, 100, '40')}</div>
+                <div><strong>Repeat Penalty:</strong> {sanitizeNumericValue(modelConfig.repeatPenalty, 0.5, 2.0, '1.1')}</div>
               </div>
             </div>
 
