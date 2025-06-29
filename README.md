@@ -1,4 +1,5 @@
 # Ollama Model Creator
+<img width="1388" alt="Screenshot 2025-06-29 at 5 03 37 AM" src="https://github.com/user-attachments/assets/a1d74382-76b1-49e2-b5d7-246c71f72a0f" />
 
 A powerful web application for creating, managing, and deploying custom AI models using Ollama ModelFiles. This intuitive interface makes it easy to build specialized AI assistants without needing to write ModelFiles manually.
 
