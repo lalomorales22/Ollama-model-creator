@@ -44,8 +44,22 @@ class OllamaService {
 
   async createModel(name: string, modelfile: string, onProgress?: (progress: string) => void): Promise<void> {
     try {
-      // Validate and clean the modelfile before sending
+      // Validate the modelfile before sending
+      const validation = this.validateModelFile(modelfile);
+      if (!validation.isValid) {
+        throw new Error(`ModelFile validation failed: ${validation.errors.join(', ')}`);
+      }
+
+      // Clean and ensure proper formatting
       const cleanedModelfile = this.cleanModelFile(modelfile);
+      
+      // Final validation after cleaning
+      const finalValidation = this.validateModelFile(cleanedModelfile);
+      if (!finalValidation.isValid) {
+        throw new Error(`ModelFile validation failed after cleaning: ${finalValidation.errors.join(', ')}`);
+      }
+
+      console.log('Creating model with ModelFile:', cleanedModelfile);
       
       const response = await fetch(`${OLLAMA_BASE_URL}/create`, {
         method: 'POST',
@@ -139,11 +153,27 @@ class OllamaService {
   private cleanModelFile(modelfile: string): string {
     const lines = modelfile.split('\n');
     const cleanedLines: string[] = [];
+    let hasFromInstruction = false;
 
     for (const line of lines) {
       const trimmedLine = line.trim();
+      
+      // Skip empty lines but preserve them for formatting
       if (!trimmedLine) {
         cleanedLines.push('');
+        continue;
+      }
+
+      // Check for FROM instruction
+      if (trimmedLine.toUpperCase().startsWith('FROM ')) {
+        hasFromInstruction = true;
+        // Ensure FROM instruction is properly formatted
+        const parts = trimmedLine.split(/\s+/);
+        if (parts.length >= 2) {
+          cleanedLines.push(`FROM ${parts[1]}`);
+        } else {
+          cleanedLines.push(trimmedLine);
+        }
         continue;
       }
 
@@ -160,9 +190,29 @@ class OllamaService {
         } else {
           cleanedLines.push(trimmedLine);
         }
-      } else {
-        cleanedLines.push(trimmedLine);
+        continue;
       }
+
+      // Handle SYSTEM instruction to ensure proper quoting
+      if (trimmedLine.toUpperCase().startsWith('SYSTEM ')) {
+        const systemContent = trimmedLine.substring(7).trim();
+        
+        // If not already quoted, add triple quotes for multi-line support
+        if (!systemContent.startsWith('"') && !systemContent.startsWith("'") && !systemContent.startsWith('"""')) {
+          cleanedLines.push(`SYSTEM """${systemContent}"""`);
+        } else {
+          cleanedLines.push(trimmedLine);
+        }
+        continue;
+      }
+
+      // For all other lines, keep as-is
+      cleanedLines.push(trimmedLine);
+    }
+
+    // If no FROM instruction was found, this is a critical error
+    if (!hasFromInstruction) {
+      throw new Error('ModelFile must contain a FROM instruction specifying the base model');
     }
 
     return cleanedLines.join('\n');
@@ -371,6 +421,14 @@ class OllamaService {
       errors.push('ModelFile can only contain one FROM instruction');
     }
 
+    // Validate FROM instruction has a model name
+    if (fromLines.length === 1) {
+      const fromParts = fromLines[0].split(/\s+/);
+      if (fromParts.length < 2 || !fromParts[1].trim()) {
+        errors.push('FROM instruction must specify a base model name');
+      }
+    }
+
     // Validate PARAMETER instructions
     const parameterLines = lines.filter(line => line.toUpperCase().startsWith('PARAMETER '));
     for (const paramLine of parameterLines) {
@@ -386,6 +444,35 @@ class OllamaService {
           const numValue = parseFloat(paramValue);
           if (isNaN(numValue)) {
             errors.push(`Invalid numeric value for ${paramName}: ${paramValue}`);
+          } else {
+            // Validate parameter ranges
+            switch (paramName) {
+              case 'temperature':
+                if (numValue < 0.1 || numValue > 2.0) {
+                  errors.push(`Temperature must be between 0.1 and 2.0, got: ${numValue}`);
+                }
+                break;
+              case 'top_p':
+                if (numValue < 0.1 || numValue > 1.0) {
+                  errors.push(`Top P must be between 0.1 and 1.0, got: ${numValue}`);
+                }
+                break;
+              case 'top_k':
+                if (numValue < 1 || numValue > 100 || !Number.isInteger(numValue)) {
+                  errors.push(`Top K must be an integer between 1 and 100, got: ${numValue}`);
+                }
+                break;
+              case 'repeat_penalty':
+                if (numValue < 0.5 || numValue > 2.0) {
+                  errors.push(`Repeat penalty must be between 0.5 and 2.0, got: ${numValue}`);
+                }
+                break;
+              case 'num_ctx':
+                if (numValue < 512 || numValue > 32768 || !Number.isInteger(numValue)) {
+                  errors.push(`Context length must be an integer between 512 and 32768, got: ${numValue}`);
+                }
+                break;
+            }
           }
         }
       }
@@ -394,8 +481,9 @@ class OllamaService {
     // Validate SYSTEM instruction format
     const systemLines = lines.filter(line => line.toUpperCase().startsWith('SYSTEM '));
     for (const systemLine of systemLines) {
-      if (!systemLine.includes('"') && !systemLine.includes("'")) {
-        errors.push(`SYSTEM instruction should be quoted: ${systemLine}`);
+      const systemContent = systemLine.substring(7).trim();
+      if (!systemContent) {
+        errors.push(`SYSTEM instruction cannot be empty: ${systemLine}`);
       }
     }
 

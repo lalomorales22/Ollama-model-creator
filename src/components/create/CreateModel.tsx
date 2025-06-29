@@ -227,7 +227,13 @@ export function CreateModel() {
     const sanitizedTopK = sanitizeNumericValue(modelConfig.topK, 1, 100, '40');
     const sanitizedRepeat = sanitizeNumericValue(modelConfig.repeatPenalty, 0.5, 2.0, '1.1');
 
-    return `FROM ${modelConfig.baseModel}
+    // Ensure we have a valid base model
+    const baseModel = modelConfig.baseModel.trim() || 'llama3.2';
+    
+    // Ensure we have a system prompt
+    const systemPrompt = modelConfig.systemPrompt.trim() || 'You are a helpful AI assistant.';
+
+    return `FROM ${baseModel}
 
 # Model parameters
 PARAMETER temperature ${sanitizedTemp}
@@ -237,7 +243,7 @@ PARAMETER top_k ${sanitizedTopK}
 PARAMETER repeat_penalty ${sanitizedRepeat}
 
 # System message
-SYSTEM """${modelConfig.systemPrompt || 'You are a helpful AI assistant.'}"""`;
+SYSTEM """${systemPrompt}"""`;
   };
 
   const validateConfiguration = (): boolean => {
@@ -250,11 +256,16 @@ SYSTEM """${modelConfig.systemPrompt || 'You are a helpful AI assistant.'}"""`;
       errors.push('Model name can only contain letters, numbers, hyphens, and underscores');
     }
 
-    // Validate base model exists
+    // Validate base model
+    if (!modelConfig.baseModel.trim()) {
+      errors.push('Base model is required');
+    }
+
+    // Validate base model exists (if we have models loaded)
     if (availableModels.length > 0) {
       const baseModelExists = availableModels.some(model => model.name === modelConfig.baseModel);
       if (!baseModelExists) {
-        errors.push(`Base model "${modelConfig.baseModel}" is not installed`);
+        errors.push(`Base model "${modelConfig.baseModel}" is not installed. Please download it first.`);
       }
     }
 
@@ -285,10 +296,14 @@ SYSTEM """${modelConfig.systemPrompt || 'You are a helpful AI assistant.'}"""`;
     }
 
     // Validate ModelFile syntax
-    const modelFile = generateModelFile();
-    const validation = ollamaService.validateModelFile(modelFile);
-    if (!validation.isValid) {
-      errors.push(...validation.errors);
+    try {
+      const modelFile = generateModelFile();
+      const validation = ollamaService.validateModelFile(modelFile);
+      if (!validation.isValid) {
+        errors.push(...validation.errors);
+      }
+    } catch (error: any) {
+      errors.push(`ModelFile generation error: ${error.message}`);
     }
 
     setValidationErrors(errors);
@@ -311,6 +326,8 @@ SYSTEM """${modelConfig.systemPrompt || 'You are a helpful AI assistant.'}"""`;
 
     try {
       const modelFile = generateModelFile();
+      
+      console.log('Generated ModelFile:', modelFile);
       
       await ollamaService.createModel(
         modelConfig.name.trim(), 
