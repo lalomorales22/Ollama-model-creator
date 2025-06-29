@@ -830,7 +830,7 @@ SYSTEM """${systemPrompt}"""`;
                     <>
                       <Play className="w-4 h-4 mr-2" />
                       Create Model
-                    </Button>
+                    </>
                   )}
                 </Button>
               ) : (
