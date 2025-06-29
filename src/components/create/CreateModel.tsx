@@ -288,37 +288,61 @@ SYSTEM """${modelConfig.systemPrompt || 'You are a helpful AI assistant.'}"""`;
     try {
       const modelFile = generateModelFile();
       
-      // Create the model with real-time progress updates
-      await ollamaService.createModel(
-        modelConfig.name, 
-        modelFile,
-        (statusMessage: string) => {
-          // Safely handle the status message
-          const status = statusMessage || 'Processing...';
-          setCreationStatus(status);
-          
-          // Update progress based on status keywords
-          const statusLower = status.toLowerCase();
-          if (statusLower.includes('pulling') || statusLower.includes('downloading')) {
-            setCreationProgress(20);
-          } else if (statusLower.includes('verifying') || statusLower.includes('verify')) {
-            setCreationProgress(40);
-          } else if (statusLower.includes('writing') || statusLower.includes('creating')) {
-            setCreationProgress(60);
-          } else if (statusLower.includes('using') || statusLower.includes('finalizing')) {
-            setCreationProgress(80);
-          } else if (statusLower.includes('success') || statusLower.includes('complete')) {
-            setCreationProgress(100);
-          } else if (statusLower.includes('%')) {
-            // Try to extract percentage from status message
-            const percentMatch = status.match(/(\d+)%/);
-            if (percentMatch) {
-              const percent = parseInt(percentMatch[1]);
-              setCreationProgress(Math.min(percent, 95)); // Cap at 95% until complete
+      // Try the standard approach first
+      try {
+        await ollamaService.createModel(
+          modelConfig.name, 
+          modelFile,
+          (statusMessage: string) => {
+            // Safely handle the status message
+            const status = statusMessage || 'Processing...';
+            setCreationStatus(status);
+            
+            // Update progress based on status keywords
+            const statusLower = status.toLowerCase();
+            if (statusLower.includes('pulling') || statusLower.includes('downloading')) {
+              setCreationProgress(20);
+            } else if (statusLower.includes('verifying') || statusLower.includes('verify')) {
+              setCreationProgress(40);
+            } else if (statusLower.includes('writing') || statusLower.includes('creating')) {
+              setCreationProgress(60);
+            } else if (statusLower.includes('using') || statusLower.includes('finalizing')) {
+              setCreationProgress(80);
+            } else if (statusLower.includes('success') || statusLower.includes('complete')) {
+              setCreationProgress(100);
+            } else if (statusLower.includes('%')) {
+              // Try to extract percentage from status message
+              const percentMatch = status.match(/(\d+)%/);
+              if (percentMatch) {
+                const percent = parseInt(percentMatch[1]);
+                setCreationProgress(Math.min(percent, 95)); // Cap at 95% until complete
+              }
             }
           }
+        );
+      } catch (primaryError: any) {
+        // If the primary method fails with the "from/files" error, try the file-based approach
+        if (primaryError.message.includes('from') || primaryError.message.includes('files')) {
+          setCreationStatus('Trying alternative creation method...');
+          await ollamaService.createModelWithFile(
+            modelConfig.name,
+            modelFile,
+            (statusMessage: string) => {
+              const status = statusMessage || 'Processing...';
+              setCreationStatus(status);
+              
+              const statusLower = status.toLowerCase();
+              if (statusLower.includes('success') || statusLower.includes('complete')) {
+                setCreationProgress(100);
+              } else {
+                setCreationProgress(prev => Math.min(prev + 10, 90));
+              }
+            }
+          );
+        } else {
+          throw primaryError;
         }
-      );
+      }
       
       setCreationProgress(100);
       setCreationStatus('Model created successfully!');

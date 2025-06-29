@@ -44,6 +44,8 @@ class OllamaService {
 
   async createModel(name: string, modelfile: string, onProgress?: (progress: string) => void): Promise<void> {
     try {
+      // First, create a temporary file with the modelfile content
+      // Since we can't write files in the browser, we'll use the direct modelfile approach
       const response = await fetch(`${OLLAMA_BASE_URL}/create`, {
         method: 'POST',
         headers: {
@@ -57,8 +59,20 @@ class OllamaService {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Failed to create model: ${response.status} ${response.statusText}`);
+        const errorText = await response.text();
+        let errorMessage = `Failed to create model: ${response.status} ${response.statusText}`;
+        
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          // If response is not JSON, use the text as error message
+          if (errorText) {
+            errorMessage = errorText;
+          }
+        }
+        
+        throw new Error(errorMessage);
       }
 
       // Handle streaming response for progress updates
@@ -274,6 +288,77 @@ class OllamaService {
       return data.version;
     } catch (error) {
       console.error('Error fetching version:', error);
+      throw error;
+    }
+  }
+
+  // Alternative method using file-based approach (for when direct modelfile doesn't work)
+  async createModelWithFile(name: string, modelfile: string, onProgress?: (progress: string) => void): Promise<void> {
+    try {
+      // Create a blob URL for the modelfile content
+      const blob = new Blob([modelfile], { type: 'text/plain' });
+      const formData = new FormData();
+      formData.append('name', name);
+      formData.append('file', blob, 'Modelfile');
+
+      const response = await fetch(`${OLLAMA_BASE_URL}/create`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorMessage = `Failed to create model: ${response.status} ${response.statusText}`;
+        
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          if (errorText) {
+            errorMessage = errorText;
+          }
+        }
+        
+        throw new Error(errorMessage);
+      }
+
+      // Handle streaming response
+      if (response.body && onProgress) {
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n').filter(line => line.trim());
+
+            for (const line of lines) {
+              try {
+                const data = JSON.parse(line);
+                
+                if (data.status) {
+                  const statusMessage = typeof data.status === 'string' ? data.status : JSON.stringify(data.status);
+                  onProgress(statusMessage);
+                }
+                
+                if (data.error) {
+                  throw new Error(data.error);
+                }
+              } catch (parseError) {
+                if (parseError instanceof SyntaxError) continue;
+                throw parseError;
+              }
+            }
+          }
+        } finally {
+          reader.releaseLock();
+        }
+      }
+    } catch (error) {
+      console.error('Error creating model with file:', error);
       throw error;
     }
   }
