@@ -15,12 +15,13 @@ import {
   CheckCircle, 
   AlertCircle,
   Sparkles,
-  Brain
+  Brain,
+  RefreshCw
 } from 'lucide-react';
 import { ollamaService } from '@/services/ollama';
 import { useToast } from '@/hooks/use-toast';
 import { useLocation } from 'react-router-dom';
-import { ModelFile } from '@/types/ollama';
+import { ModelFile, OllamaModel } from '@/types/ollama';
 
 interface ModelCreationStep {
   id: string;
@@ -34,6 +35,8 @@ export function CreateModel() {
   const [currentStep, setCurrentStep] = useState(0);
   const [isCreating, setIsCreating] = useState(false);
   const [creationProgress, setCreationProgress] = useState(0);
+  const [availableModels, setAvailableModels] = useState<OllamaModel[]>([]);
+  const [isLoadingModels, setIsLoadingModels] = useState(false);
   const [modelConfig, setModelConfig] = useState({
     name: '',
     baseModel: 'llama3.2',
@@ -80,6 +83,57 @@ export function CreateModel() {
   ];
 
   const [stepsState, setStepsState] = useState(steps);
+
+  useEffect(() => {
+    loadAvailableModels();
+    loadDefaultSettings();
+  }, []);
+
+  const loadDefaultSettings = () => {
+    try {
+      const saved = localStorage.getItem('ollama-app-settings');
+      if (saved) {
+        const settings = JSON.parse(saved);
+        if (settings.defaultModel) {
+          setModelConfig(prev => ({ ...prev, baseModel: settings.defaultModel }));
+        }
+        if (settings.defaultTemperature) {
+          setModelConfig(prev => ({ ...prev, temperature: settings.defaultTemperature.toString() }));
+        }
+        if (settings.defaultContextLength) {
+          setModelConfig(prev => ({ ...prev, maxTokens: settings.defaultContextLength.toString() }));
+        }
+      }
+    } catch (error) {
+      console.error('Error loading default settings:', error);
+    }
+  };
+
+  const loadAvailableModels = async () => {
+    setIsLoadingModels(true);
+    try {
+      const models = await ollamaService.getModels();
+      setAvailableModels(models);
+      
+      // If no models are available, show a warning
+      if (models.length === 0) {
+        toast({
+          title: "No Models Found",
+          description: "No Ollama models are installed. Please download a base model first.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error loading models:', error);
+      toast({
+        title: "Connection Error",
+        description: "Failed to load available models. Make sure Ollama is running.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingModels(false);
+    }
+  };
 
   // Check if we're coming from ModelFiles with pre-filled data
   useEffect(() => {
@@ -211,6 +265,7 @@ SYSTEM """${modelConfig.systemPrompt || 'You are a helpful AI assistant.'}"""`;
           topK: '40',
           repeatPenalty: '1.1'
         });
+        loadDefaultSettings(); // Reload default settings
       }, 2000);
 
     } catch (error) {
@@ -222,6 +277,25 @@ SYSTEM """${modelConfig.systemPrompt || 'You are a helpful AI assistant.'}"""`;
         variant: "destructive",
       });
     }
+  };
+
+  const getModelOptions = () => {
+    const fallbackModels = [
+      { name: 'llama3.2', displayName: 'Llama 3.2' },
+      { name: 'llama3.1', displayName: 'Llama 3.1' },
+      { name: 'mistral', displayName: 'Mistral' },
+      { name: 'codellama', displayName: 'Code Llama' },
+      { name: 'gemma2', displayName: 'Gemma 2' },
+    ];
+
+    if (availableModels.length > 0) {
+      return availableModels.map(model => ({
+        name: model.name,
+        displayName: model.name
+      }));
+    }
+
+    return fallbackModels;
   };
 
   const renderStepContent = () => {
@@ -242,20 +316,39 @@ SYSTEM """${modelConfig.systemPrompt || 'You are a helpful AI assistant.'}"""`;
             </div>
             
             <div>
-              <Label htmlFor="baseModel" className="text-sm font-medium text-black">Base Model</Label>
-              <Select value={modelConfig.baseModel} onValueChange={(value) => setModelConfig(prev => ({ ...prev, baseModel: value }))}>
+              <div className="flex items-center justify-between mb-2">
+                <Label htmlFor="baseModel" className="text-sm font-medium text-black">Base Model</Label>
+                <Button
+                  onClick={loadAvailableModels}
+                  variant="outline"
+                  size="sm"
+                  disabled={isLoadingModels}
+                  className="border-2 border-black hover:bg-black hover:text-white"
+                >
+                  <RefreshCw className={`w-4 h-4 ${isLoadingModels ? 'animate-spin' : ''}`} />
+                </Button>
+              </div>
+              <Select 
+                value={modelConfig.baseModel} 
+                onValueChange={(value) => setModelConfig(prev => ({ ...prev, baseModel: value }))}
+              >
                 <SelectTrigger className="mt-2 border-2 border-black">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="llama3.2">Llama 3.2</SelectItem>
-                  <SelectItem value="llama3.1">Llama 3.1</SelectItem>
-                  <SelectItem value="mistral">Mistral</SelectItem>
-                  <SelectItem value="codellama">Code Llama</SelectItem>
-                  <SelectItem value="gemma2">Gemma 2</SelectItem>
+                  {getModelOptions().map((model) => (
+                    <SelectItem key={model.name} value={model.name}>
+                      {model.displayName}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-gray-500 mt-1">Select the base model to build upon</p>
+              <p className="text-xs text-gray-500 mt-1">
+                Select the base model to build upon
+                {availableModels.length === 0 && (
+                  <span className="text-yellow-600"> • Showing fallback models (download models first)</span>
+                )}
+              </p>
             </div>
           </div>
         );

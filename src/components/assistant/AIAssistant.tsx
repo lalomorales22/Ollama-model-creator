@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChatMessage } from '@/types/ollama';
+import { ChatMessage, OllamaModel } from '@/types/ollama';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { Send, Brain, Copy, Download, Sparkles, Save, Plus } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Send, Brain, Copy, Download, Sparkles, Save, Plus, RefreshCw } from 'lucide-react';
 import { ollamaService } from '@/services/ollama';
 import { useToast } from '@/hooks/use-toast';
 import { modelFileService } from '@/services/modelfiles';
@@ -39,6 +40,8 @@ What kind of custom model would you like to create today? Describe the personali
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [selectedModel, setSelectedModel] = useState('llama3.2');
+  const [availableModels, setAvailableModels] = useState<OllamaModel[]>([]);
+  const [isLoadingModels, setIsLoadingModels] = useState(false);
   const [generatedModelFile, setGeneratedModelFile] = useState('');
   const [modelFileName, setModelFileName] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -47,6 +50,70 @@ What kind of custom model would you like to create today? Describe the personali
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  useEffect(() => {
+    loadAvailableModels();
+    loadDefaultSettings();
+  }, []);
+
+  const loadDefaultSettings = () => {
+    try {
+      const saved = localStorage.getItem('ollama-app-settings');
+      if (saved) {
+        const settings = JSON.parse(saved);
+        if (settings.defaultModel) {
+          setSelectedModel(settings.defaultModel);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading default settings:', error);
+    }
+  };
+
+  const loadAvailableModels = async () => {
+    setIsLoadingModels(true);
+    try {
+      const models = await ollamaService.getModels();
+      setAvailableModels(models);
+      
+      // If no models are available, show a warning
+      if (models.length === 0) {
+        toast({
+          title: "No Models Found",
+          description: "No Ollama models are installed. Please download a base model first.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error loading models:', error);
+      toast({
+        title: "Connection Error",
+        description: "Failed to load available models. Make sure Ollama is running.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingModels(false);
+    }
+  };
+
+  const getModelOptions = () => {
+    const fallbackModels = [
+      { name: 'llama3.2', displayName: 'Llama 3.2' },
+      { name: 'llama3.1', displayName: 'Llama 3.1' },
+      { name: 'mistral', displayName: 'Mistral' },
+      { name: 'codellama', displayName: 'Code Llama' },
+      { name: 'gemma2', displayName: 'Gemma 2' },
+    ];
+
+    if (availableModels.length > 0) {
+      return availableModels.map(model => ({
+        name: model.name,
+        displayName: model.name
+      }));
+    }
+
+    return fallbackModels;
+  };
 
   const handleSendMessage = async () => {
     if (!input.trim() || isLoading) return;
@@ -259,15 +326,46 @@ Always provide practical, working examples and explain your recommendations clea
                     <p className="text-sm text-gray-600">Specialized in Ollama ModelFile creation</p>
                   </div>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="border-2 border-black hover:bg-black hover:text-white"
-                  onClick={() => setMessages(messages.slice(0, 1))}
-                >
-                  Clear Chat
-                </Button>
+                <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-2">
+                    <label className="text-sm font-medium text-black">Model:</label>
+                    <Select value={selectedModel} onValueChange={setSelectedModel}>
+                      <SelectTrigger className="w-40 border-2 border-black">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {getModelOptions().map((model) => (
+                          <SelectItem key={model.name} value={model.name}>
+                            {model.displayName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      onClick={loadAvailableModels}
+                      variant="outline"
+                      size="sm"
+                      disabled={isLoadingModels}
+                      className="border-2 border-black hover:bg-black hover:text-white"
+                    >
+                      <RefreshCw className={`w-4 h-4 ${isLoadingModels ? 'animate-spin' : ''}`} />
+                    </Button>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-2 border-black hover:bg-black hover:text-white"
+                    onClick={() => setMessages(messages.slice(0, 1))}
+                  >
+                    Clear Chat
+                  </Button>
+                </div>
               </div>
+              {availableModels.length === 0 && (
+                <div className="mt-2 text-xs text-yellow-600">
+                  ⚠️ No models detected - showing fallback options. Download models first for best experience.
+                </div>
+              )}
             </div>
 
             {/* Messages */}
