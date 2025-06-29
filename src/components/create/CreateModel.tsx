@@ -17,7 +17,8 @@ import {
   Sparkles,
   Brain,
   RefreshCw,
-  XCircle
+  XCircle,
+  Download
 } from 'lucide-react';
 import { ollamaService } from '@/services/ollama';
 import { useToast } from '@/hooks/use-toast';
@@ -246,7 +247,7 @@ PARAMETER repeat_penalty ${sanitizedRepeat}
 SYSTEM """${systemPrompt}"""`;
   };
 
-  const validateConfiguration = (): boolean => {
+  const validateConfiguration = async (): Promise<boolean> => {
     const errors: string[] = [];
 
     // Validate model name
@@ -261,11 +262,22 @@ SYSTEM """${systemPrompt}"""`;
       errors.push('Base model is required');
     }
 
-    // Validate base model exists (if we have models loaded)
+    // Check if base model exists (if we have models loaded)
     if (availableModels.length > 0) {
       const baseModelExists = availableModels.some(model => model.name === modelConfig.baseModel);
       if (!baseModelExists) {
-        errors.push(`Base model "${modelConfig.baseModel}" is not installed. Please download it first.`);
+        errors.push(`Base model "${modelConfig.baseModel}" is not installed. Please download it first or refresh the models list.`);
+      }
+    } else {
+      // If no models loaded, try to check if the model exists
+      try {
+        const modelExists = await ollamaService.checkModelExists(modelConfig.baseModel);
+        if (!modelExists) {
+          errors.push(`Base model "${modelConfig.baseModel}" is not installed. Please download it first.`);
+        }
+      } catch (error) {
+        // If we can't check, add a warning but don't fail validation
+        console.warn('Could not verify base model exists:', error);
       }
     }
 
@@ -311,7 +323,8 @@ SYSTEM """${systemPrompt}"""`;
   };
 
   const createModel = async () => {
-    if (!validateConfiguration()) {
+    const isValid = await validateConfiguration();
+    if (!isValid) {
       toast({
         title: "Validation Error",
         description: "Please fix the configuration errors before creating the model.",
@@ -428,6 +441,36 @@ SYSTEM """${systemPrompt}"""`;
     return fallbackModels;
   };
 
+  const handleDownloadBaseModel = async () => {
+    if (!modelConfig.baseModel) return;
+
+    try {
+      setIsLoadingModels(true);
+      toast({
+        title: "Downloading Model",
+        description: `Starting download of ${modelConfig.baseModel}...`,
+      });
+
+      await ollamaService.pullModel(modelConfig.baseModel);
+      
+      toast({
+        title: "Model Downloaded",
+        description: `${modelConfig.baseModel} has been downloaded successfully.`,
+      });
+
+      // Refresh the models list
+      await loadAvailableModels();
+    } catch (error: any) {
+      toast({
+        title: "Download Failed",
+        description: `Failed to download ${modelConfig.baseModel}: ${error.message}`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingModels(false);
+    }
+  };
+
   const renderStepContent = () => {
     switch (currentStep) {
       case 0:
@@ -448,15 +491,30 @@ SYSTEM """${systemPrompt}"""`;
             <div>
               <div className="flex items-center justify-between mb-2">
                 <Label htmlFor="baseModel" className="text-sm font-medium text-black">Base Model</Label>
-                <Button
-                  onClick={loadAvailableModels}
-                  variant="outline"
-                  size="sm"
-                  disabled={isLoadingModels}
-                  className="border-2 border-black hover:bg-black hover:text-white"
-                >
-                  <RefreshCw className={`w-4 h-4 ${isLoadingModels ? 'animate-spin' : ''}`} />
-                </Button>
+                <div className="flex space-x-2">
+                  <Button
+                    onClick={loadAvailableModels}
+                    variant="outline"
+                    size="sm"
+                    disabled={isLoadingModels}
+                    className="border-2 border-black hover:bg-black hover:text-white"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${isLoadingModels ? 'animate-spin' : ''}`} />
+                  </Button>
+                  {modelConfig.baseModel && availableModels.length > 0 && 
+                   !availableModels.some(model => model.name === modelConfig.baseModel) && (
+                    <Button
+                      onClick={handleDownloadBaseModel}
+                      variant="outline"
+                      size="sm"
+                      disabled={isLoadingModels}
+                      className="border-2 border-blue-500 text-blue-700 hover:bg-blue-50"
+                    >
+                      <Download className="w-4 h-4 mr-1" />
+                      Download
+                    </Button>
+                  )}
+                </div>
               </div>
               <Select 
                 value={modelConfig.baseModel} 
@@ -468,7 +526,13 @@ SYSTEM """${systemPrompt}"""`;
                 <SelectContent>
                   {getModelOptions().map((model) => (
                     <SelectItem key={model.name} value={model.name}>
-                      {model.displayName}
+                      <div className="flex items-center justify-between w-full">
+                        <span>{model.displayName}</span>
+                        {availableModels.length > 0 && 
+                         availableModels.some(m => m.name === model.name) && (
+                          <CheckCircle className="w-4 h-4 text-green-600 ml-2" />
+                        )}
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -477,6 +541,10 @@ SYSTEM """${systemPrompt}"""`;
                 Select the base model to build upon
                 {availableModels.length === 0 && (
                   <span className="text-yellow-600"> • Showing fallback models (download models first)</span>
+                )}
+                {availableModels.length > 0 && modelConfig.baseModel && 
+                 !availableModels.some(model => model.name === modelConfig.baseModel) && (
+                  <span className="text-red-600"> • Model not installed - click Download to install it</span>
                 )}
               </p>
             </div>
@@ -762,7 +830,7 @@ SYSTEM """${systemPrompt}"""`;
                     <>
                       <Play className="w-4 h-4 mr-2" />
                       Create Model
-                    </>
+                    </Button>
                   )}
                 </Button>
               ) : (

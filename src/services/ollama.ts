@@ -44,7 +44,13 @@ class OllamaService {
 
   async createModel(name: string, modelfile: string, onProgress?: (progress: string) => void): Promise<void> {
     try {
-      // Validate the modelfile before sending
+      // Clean the model name - remove any invalid characters
+      const cleanName = name.trim().replace(/[^a-zA-Z0-9_-]/g, '').toLowerCase();
+      if (!cleanName) {
+        throw new Error('Invalid model name. Use only letters, numbers, hyphens, and underscores.');
+      }
+
+      // Validate and clean the modelfile before sending
       const validation = this.validateModelFile(modelfile);
       if (!validation.isValid) {
         throw new Error(`ModelFile validation failed: ${validation.errors.join(', ')}`);
@@ -67,7 +73,7 @@ class OllamaService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          name: name.trim(),
+          name: cleanName,
           modelfile: cleanedModelfile,
           stream: true
         }),
@@ -164,15 +170,23 @@ class OllamaService {
         continue;
       }
 
-      // Check for FROM instruction
+      // Skip comments
+      if (trimmedLine.startsWith('#')) {
+        cleanedLines.push(trimmedLine);
+        continue;
+      }
+
+      // Check for FROM instruction - this is critical
       if (trimmedLine.toUpperCase().startsWith('FROM ')) {
         hasFromInstruction = true;
         // Ensure FROM instruction is properly formatted
         const parts = trimmedLine.split(/\s+/);
-        if (parts.length >= 2) {
-          cleanedLines.push(`FROM ${parts[1]}`);
+        if (parts.length >= 2 && parts[1].trim()) {
+          // Clean the model name - remove any quotes or extra characters
+          const modelName = parts[1].trim().replace(/['"]/g, '');
+          cleanedLines.push(`FROM ${modelName}`);
         } else {
-          cleanedLines.push(trimmedLine);
+          throw new Error('FROM instruction must specify a valid base model name');
         }
         continue;
       }
@@ -197,12 +211,17 @@ class OllamaService {
       if (trimmedLine.toUpperCase().startsWith('SYSTEM ')) {
         const systemContent = trimmedLine.substring(7).trim();
         
-        // If not already quoted, add triple quotes for multi-line support
-        if (!systemContent.startsWith('"') && !systemContent.startsWith("'") && !systemContent.startsWith('"""')) {
-          cleanedLines.push(`SYSTEM """${systemContent}"""`);
-        } else {
-          cleanedLines.push(trimmedLine);
+        // Remove existing quotes and re-add proper triple quotes
+        let cleanContent = systemContent;
+        if (cleanContent.startsWith('"') && cleanContent.endsWith('"')) {
+          cleanContent = cleanContent.slice(1, -1);
+        } else if (cleanContent.startsWith("'") && cleanContent.endsWith("'")) {
+          cleanContent = cleanContent.slice(1, -1);
+        } else if (cleanContent.startsWith('"""') && cleanContent.endsWith('"""')) {
+          cleanContent = cleanContent.slice(3, -3);
         }
+        
+        cleanedLines.push(`SYSTEM """${cleanContent}"""`);
         continue;
       }
 
@@ -215,7 +234,9 @@ class OllamaService {
       throw new Error('ModelFile must contain a FROM instruction specifying the base model');
     }
 
-    return cleanedLines.join('\n');
+    const result = cleanedLines.join('\n');
+    console.log('Cleaned ModelFile:', result);
+    return result;
   }
 
   // Clean parameter values to ensure they're properly formatted
@@ -407,25 +428,25 @@ class OllamaService {
   // Validate ModelFile syntax before creating model
   validateModelFile(modelfile: string): { isValid: boolean; errors: string[] } {
     const errors: string[] = [];
-    const lines = modelfile.split('\n').map(line => line.trim()).filter(line => line);
+    const lines = modelfile.split('\n').map(line => line.trim()).filter(line => line && !line.startsWith('#'));
 
     // Check for required FROM instruction
-    const hasFrom = lines.some(line => line.toUpperCase().startsWith('FROM '));
-    if (!hasFrom) {
-      errors.push('ModelFile must contain a FROM instruction specifying the base model');
-    }
-
-    // Validate FROM instruction format
     const fromLines = lines.filter(line => line.toUpperCase().startsWith('FROM '));
-    if (fromLines.length > 1) {
+    if (fromLines.length === 0) {
+      errors.push('ModelFile must contain a FROM instruction specifying the base model');
+    } else if (fromLines.length > 1) {
       errors.push('ModelFile can only contain one FROM instruction');
-    }
-
-    // Validate FROM instruction has a model name
-    if (fromLines.length === 1) {
+    } else {
+      // Validate FROM instruction has a model name
       const fromParts = fromLines[0].split(/\s+/);
       if (fromParts.length < 2 || !fromParts[1].trim()) {
         errors.push('FROM instruction must specify a base model name');
+      } else {
+        // Check if the model name looks valid
+        const modelName = fromParts[1].trim();
+        if (!/^[a-zA-Z0-9._:-]+$/.test(modelName)) {
+          errors.push(`Invalid base model name: ${modelName}. Use only letters, numbers, dots, colons, and hyphens.`);
+        }
       }
     }
 
@@ -491,6 +512,17 @@ class OllamaService {
       isValid: errors.length === 0,
       errors
     };
+  }
+
+  // Check if a model exists in the available models
+  async checkModelExists(modelName: string): Promise<boolean> {
+    try {
+      const models = await this.getModels();
+      return models.some(model => model.name === modelName);
+    } catch (error) {
+      console.error('Error checking if model exists:', error);
+      return false;
+    }
   }
 }
 
