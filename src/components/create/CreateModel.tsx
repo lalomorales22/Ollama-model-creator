@@ -16,11 +16,12 @@ import {
   AlertCircle,
   Sparkles,
   Brain,
-  RefreshCw
+  RefreshCw,
+  XCircle
 } from 'lucide-react';
 import { ollamaService } from '@/services/ollama';
 import { useToast } from '@/hooks/use-toast';
-import { useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ModelFile, OllamaModel } from '@/types/ollama';
 
 interface ModelCreationStep {
@@ -35,8 +36,10 @@ export function CreateModel() {
   const [currentStep, setCurrentStep] = useState(0);
   const [isCreating, setIsCreating] = useState(false);
   const [creationProgress, setCreationProgress] = useState(0);
+  const [creationStatus, setCreationStatus] = useState('');
   const [availableModels, setAvailableModels] = useState<OllamaModel[]>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [modelConfig, setModelConfig] = useState({
     name: '',
     baseModel: 'llama3.2',
@@ -49,6 +52,7 @@ export function CreateModel() {
   });
   
   const { toast } = useToast();
+  const navigate = useNavigate();
   const location = useLocation();
 
   const steps: ModelCreationStep[] = [
@@ -212,11 +216,66 @@ PARAMETER repeat_penalty ${modelConfig.repeatPenalty}
 SYSTEM """${modelConfig.systemPrompt || 'You are a helpful AI assistant.'}"""`;
   };
 
-  const createModel = async () => {
+  const validateConfiguration = (): boolean => {
+    const errors: string[] = [];
+
+    // Validate model name
     if (!modelConfig.name.trim()) {
+      errors.push('Model name is required');
+    } else if (!/^[a-zA-Z0-9_-]+$/.test(modelConfig.name)) {
+      errors.push('Model name can only contain letters, numbers, hyphens, and underscores');
+    }
+
+    // Validate base model exists
+    if (availableModels.length > 0) {
+      const baseModelExists = availableModels.some(model => model.name === modelConfig.baseModel);
+      if (!baseModelExists) {
+        errors.push(`Base model "${modelConfig.baseModel}" is not installed`);
+      }
+    }
+
+    // Validate parameters
+    const temp = parseFloat(modelConfig.temperature);
+    if (isNaN(temp) || temp < 0.1 || temp > 2.0) {
+      errors.push('Temperature must be between 0.1 and 2.0');
+    }
+
+    const ctx = parseInt(modelConfig.maxTokens);
+    if (isNaN(ctx) || ctx < 512 || ctx > 32768) {
+      errors.push('Context length must be between 512 and 32768');
+    }
+
+    const topP = parseFloat(modelConfig.topP);
+    if (isNaN(topP) || topP < 0.1 || topP > 1.0) {
+      errors.push('Top P must be between 0.1 and 1.0');
+    }
+
+    const topK = parseInt(modelConfig.topK);
+    if (isNaN(topK) || topK < 1 || topK > 100) {
+      errors.push('Top K must be between 1 and 100');
+    }
+
+    const repeatPenalty = parseFloat(modelConfig.repeatPenalty);
+    if (isNaN(repeatPenalty) || repeatPenalty < 0.5 || repeatPenalty > 2.0) {
+      errors.push('Repeat penalty must be between 0.5 and 2.0');
+    }
+
+    // Validate ModelFile syntax
+    const modelFile = generateModelFile();
+    const validation = ollamaService.validateModelFile(modelFile);
+    if (!validation.isValid) {
+      errors.push(...validation.errors);
+    }
+
+    setValidationErrors(errors);
+    return errors.length === 0;
+  };
+
+  const createModel = async () => {
+    if (!validateConfiguration()) {
       toast({
-        title: "Error",
-        description: "Please provide a model name",
+        title: "Validation Error",
+        description: "Please fix the configuration errors before creating the model.",
         variant: "destructive",
       });
       return;
@@ -224,35 +283,46 @@ SYSTEM """${modelConfig.systemPrompt || 'You are a helpful AI assistant.'}"""`;
 
     setIsCreating(true);
     setCreationProgress(0);
+    setCreationStatus('Initializing model creation...');
 
     try {
       const modelFile = generateModelFile();
       
-      // Simulate progress
-      const progressInterval = setInterval(() => {
-        setCreationProgress(prev => {
-          if (prev >= 90) {
-            clearInterval(progressInterval);
-            return 90;
+      // Create the model with real-time progress updates
+      await ollamaService.createModel(
+        modelConfig.name, 
+        modelFile,
+        (status: string) => {
+          setCreationStatus(status);
+          
+          // Update progress based on status messages
+          if (status.includes('pulling')) {
+            setCreationProgress(20);
+          } else if (status.includes('verifying')) {
+            setCreationProgress(40);
+          } else if (status.includes('writing')) {
+            setCreationProgress(60);
+          } else if (status.includes('using')) {
+            setCreationProgress(80);
+          } else if (status.includes('success')) {
+            setCreationProgress(100);
           }
-          return prev + 10;
-        });
-      }, 500);
-
-      await ollamaService.createModel(modelConfig.name, modelFile);
+        }
+      );
       
-      clearInterval(progressInterval);
       setCreationProgress(100);
+      setCreationStatus('Model created successfully!');
       
       toast({
         title: "Model Created Successfully",
         description: `Your model "${modelConfig.name}" has been created and is ready to use.`,
       });
 
-      // Reset form
+      // Reset form after a delay
       setTimeout(() => {
         setIsCreating(false);
         setCreationProgress(0);
+        setCreationStatus('');
         setCurrentStep(0);
         setStepsState(steps);
         setModelConfig({
@@ -265,17 +335,27 @@ SYSTEM """${modelConfig.systemPrompt || 'You are a helpful AI assistant.'}"""`;
           topK: '40',
           repeatPenalty: '1.1'
         });
+        setValidationErrors([]);
         loadDefaultSettings(); // Reload default settings
-      }, 2000);
+        
+        // Navigate to models page to see the new model
+        navigate('/models');
+      }, 3000);
 
-    } catch (error) {
+    } catch (error: any) {
       setIsCreating(false);
       setCreationProgress(0);
+      setCreationStatus('');
+      
+      const errorMessage = error.message || 'Unknown error occurred';
+      
       toast({
         title: "Error Creating Model",
-        description: "Failed to create the model. Please check your configuration and try again.",
+        description: `Failed to create the model: ${errorMessage}`,
         variant: "destructive",
       });
+      
+      console.error('Model creation error:', error);
     }
   };
 
@@ -312,7 +392,7 @@ SYSTEM """${modelConfig.systemPrompt || 'You are a helpful AI assistant.'}"""`;
                 placeholder="my-custom-model"
                 className="mt-2 border-2 border-black"
               />
-              <p className="text-xs text-gray-500 mt-1">Choose a unique name for your model</p>
+              <p className="text-xs text-gray-500 mt-1">Choose a unique name for your model (letters, numbers, hyphens, underscores only)</p>
             </div>
             
             <div>
@@ -363,8 +443,8 @@ SYSTEM """${modelConfig.systemPrompt || 'You are a helpful AI assistant.'}"""`;
                   id="temperature"
                   type="number"
                   step="0.1"
-                  min="0"
-                  max="2"
+                  min="0.1"
+                  max="2.0"
                   value={modelConfig.temperature}
                   onChange={(e) => setModelConfig(prev => ({ ...prev, temperature: e.target.value }))}
                   className="mt-2 border-2 border-black"
@@ -377,11 +457,13 @@ SYSTEM """${modelConfig.systemPrompt || 'You are a helpful AI assistant.'}"""`;
                 <Input
                   id="maxTokens"
                   type="number"
+                  min="512"
+                  max="32768"
                   value={modelConfig.maxTokens}
                   onChange={(e) => setModelConfig(prev => ({ ...prev, maxTokens: e.target.value }))}
                   className="mt-2 border-2 border-black"
                 />
-                <p className="text-xs text-gray-500 mt-1">Maximum context window size</p>
+                <p className="text-xs text-gray-500 mt-1">Maximum context window size (512-32768)</p>
               </div>
             </div>
 
@@ -392,8 +474,8 @@ SYSTEM """${modelConfig.systemPrompt || 'You are a helpful AI assistant.'}"""`;
                   id="topP"
                   type="number"
                   step="0.1"
-                  min="0"
-                  max="1"
+                  min="0.1"
+                  max="1.0"
                   value={modelConfig.topP}
                   onChange={(e) => setModelConfig(prev => ({ ...prev, topP: e.target.value }))}
                   className="mt-2 border-2 border-black"
@@ -406,11 +488,13 @@ SYSTEM """${modelConfig.systemPrompt || 'You are a helpful AI assistant.'}"""`;
                 <Input
                   id="topK"
                   type="number"
+                  min="1"
+                  max="100"
                   value={modelConfig.topK}
                   onChange={(e) => setModelConfig(prev => ({ ...prev, topK: e.target.value }))}
                   className="mt-2 border-2 border-black"
                 />
-                <p className="text-xs text-gray-500 mt-1">Top-k sampling limit</p>
+                <p className="text-xs text-gray-500 mt-1">Top-k sampling limit (1-100)</p>
               </div>
             </div>
 
@@ -421,7 +505,7 @@ SYSTEM """${modelConfig.systemPrompt || 'You are a helpful AI assistant.'}"""`;
                 type="number"
                 step="0.1"
                 min="0.5"
-                max="2"
+                max="2.0"
                 value={modelConfig.repeatPenalty}
                 onChange={(e) => setModelConfig(prev => ({ ...prev, repeatPenalty: e.target.value }))}
                 className="mt-2 border-2 border-black"
@@ -491,6 +575,21 @@ SYSTEM """${modelConfig.systemPrompt || 'You are a helpful AI assistant.'}"""`;
               </div>
             </div>
 
+            {/* Validation Errors */}
+            {validationErrors.length > 0 && (
+              <div className="bg-red-50 p-4 rounded-lg border-2 border-red-200">
+                <div className="flex items-center space-x-2 mb-2">
+                  <XCircle className="w-5 h-5 text-red-600" />
+                  <h4 className="font-bold text-red-800">Configuration Errors</h4>
+                </div>
+                <ul className="text-sm text-red-700 space-y-1">
+                  {validationErrors.map((error, index) => (
+                    <li key={index}>• {error}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             <div>
               <h3 className="font-bold text-black mb-2">Generated ModelFile</h3>
               <Textarea
@@ -504,10 +603,16 @@ SYSTEM """${modelConfig.systemPrompt || 'You are a helpful AI assistant.'}"""`;
               <div className="space-y-4">
                 <div className="flex items-center space-x-3">
                   <Brain className="w-5 h-5 animate-pulse" />
-                  <span className="text-sm">Creating your model...</span>
+                  <span className="text-sm font-medium">Creating your model...</span>
                 </div>
                 <Progress value={creationProgress} className="w-full" />
-                <p className="text-xs text-gray-500">This may take a few minutes depending on your system.</p>
+                <p className="text-xs text-gray-600">{creationStatus}</p>
+                <div className="p-3 bg-blue-50 border-2 border-blue-200 rounded-lg">
+                  <p className="text-sm text-blue-800">
+                    <strong>Note:</strong> Model creation can take several minutes depending on the base model size and your system performance. 
+                    Please be patient and do not close this page.
+                  </p>
+                </div>
               </div>
             )}
           </div>
@@ -585,7 +690,7 @@ SYSTEM """${modelConfig.systemPrompt || 'You are a helpful AI assistant.'}"""`;
             <div className="flex justify-between mt-8">
               <Button
                 onClick={prevStep}
-                disabled={currentStep === 0}
+                disabled={currentStep === 0 || isCreating}
                 variant="outline"
                 className="border-2 border-black hover:bg-black hover:text-white"
               >
@@ -595,7 +700,7 @@ SYSTEM """${modelConfig.systemPrompt || 'You are a helpful AI assistant.'}"""`;
               {currentStep === stepsState.length - 1 ? (
                 <Button
                   onClick={createModel}
-                  disabled={isCreating || !modelConfig.name.trim()}
+                  disabled={isCreating || !modelConfig.name.trim() || validationErrors.length > 0}
                   className="bg-black text-white hover:bg-gray-800 border-2 border-black"
                 >
                   {isCreating ? (
@@ -613,6 +718,7 @@ SYSTEM """${modelConfig.systemPrompt || 'You are a helpful AI assistant.'}"""`;
               ) : (
                 <Button
                   onClick={nextStep}
+                  disabled={isCreating}
                   className="bg-black text-white hover:bg-gray-800 border-2 border-black"
                 >
                   Next
