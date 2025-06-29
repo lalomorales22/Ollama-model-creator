@@ -9,6 +9,7 @@ import { Send, Brain, Copy, Download, Sparkles, Save, Plus, RefreshCw } from 'lu
 import { ollamaService } from '@/services/ollama';
 import { useToast } from '@/hooks/use-toast';
 import { modelFileService } from '@/services/modelfiles';
+import { useLocation } from 'react-router-dom';
 
 export function AIAssistant() {
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -46,6 +47,7 @@ What kind of custom model would you like to create today? Describe the personali
   const [modelFileName, setModelFileName] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const location = useLocation();
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -54,7 +56,16 @@ What kind of custom model would you like to create today? Describe the personali
   useEffect(() => {
     loadAvailableModels();
     loadDefaultSettings();
-  }, []);
+    
+    // Check if a model was pre-selected from navigation
+    if (location.state?.selectedModel) {
+      setSelectedModel(location.state.selectedModel);
+      toast({
+        title: "Model Selected",
+        description: `Ready to chat with ${location.state.selectedModel}`,
+      });
+    }
+  }, [location.state]);
 
   const loadDefaultSettings = () => {
     try {

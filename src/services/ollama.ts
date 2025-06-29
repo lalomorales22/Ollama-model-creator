@@ -44,6 +44,14 @@ class OllamaService {
 
   async createModel(name: string, modelfile: string, onProgress?: (progress: string) => void): Promise<void> {
     try {
+      // First, check Ollama version to help with debugging
+      try {
+        const version = await this.getVersion();
+        console.log('Ollama version:', version);
+      } catch (versionError) {
+        console.log('Could not get Ollama version, continuing with model creation...');
+      }
+
       // Clean the model name - remove any invalid characters
       const cleanName = name.trim().replace(/[^a-zA-Z0-9_-]/g, '').toLowerCase();
       if (!cleanName) {
@@ -59,38 +67,120 @@ class OllamaService {
       // Clean and ensure proper formatting
       const cleanedModelfile = this.cleanModelFile(modelfile);
       
-      console.log('Creating model with ModelFile:', cleanedModelfile);
-      
-      // Create the request payload
-      const payload = {
-        name: cleanName,
-        modelfile: cleanedModelfile
-      };
-
-      console.log('Sending payload:', JSON.stringify(payload, null, 2));
-      
-      const response = await fetch(`${OLLAMA_BASE_URL}/create`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Create model error response:', errorText);
-        
-        let errorMessage = `Failed to create model: ${response.status} ${response.statusText}`;
+      // Check if the base model exists
+      const fromMatch = cleanedModelfile.match(/FROM\s+([^\s\n]+)/i);
+      if (fromMatch) {
+        const baseModelName = fromMatch[1];
+        console.log('Checking if base model exists:', baseModelName);
         
         try {
-          const errorData = JSON.parse(errorText);
-          errorMessage = errorData.error || errorMessage;
-        } catch {
-          // If response is not JSON, use the text as error message
-          if (errorText) {
-            errorMessage = errorText;
+          const modelExists = await this.checkModelExists(baseModelName);
+          if (!modelExists) {
+            throw new Error(`Base model "${baseModelName}" is not installed. Please download it first using: ollama pull ${baseModelName}`);
           }
+        } catch (checkError) {
+          console.log('Could not verify base model existence:', checkError);
+          // Continue anyway, let the create API handle it
+        }
+      }
+      
+      console.log('Creating model with ModelFile:', cleanedModelfile);
+      
+      // For Ollama 0.9.3, use the correct API format directly
+      const parsedModelFile = this.parseModelFileForOldAPI(cleanedModelfile);
+      
+      // Try the formats that Ollama 0.9.3 expects
+      const formatOptions = [
+        // Format 1: Traditional format with 'from' field
+        {
+          name: cleanName,
+          from: parsedModelFile.baseModel,
+          ...parsedModelFile.structure
+        },
+        // Format 2: Alternative with 'model' field
+        {
+          model: cleanName,
+          from: parsedModelFile.baseModel,
+          ...parsedModelFile.structure
+        },
+        // Format 3: Modern format (fallback)
+        {
+          name: cleanName,
+          modelfile: cleanedModelfile
+        },
+        // Format 4: Modern format with 'model'
+        {
+          model: cleanName,
+          modelfile: cleanedModelfile
+        }
+      ];
+
+      let response: Response | null = null;
+      let lastError = '';
+
+      for (let i = 0; i < formatOptions.length; i++) {
+        const payload = formatOptions[i];
+        console.log(`Trying API format ${i + 1}:`, JSON.stringify(payload, null, 2));
+        
+        try {
+          response = await fetch(`${OLLAMA_BASE_URL}/create`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+          });
+
+          if (response.ok) {
+            console.log(`Success with format ${i + 1}!`);
+            break;
+          } else {
+            // Clone the response to read the error without consuming the body
+            const responseClone = response.clone();
+            const errorText = await responseClone.text();
+            console.log(`Format ${i + 1} failed:`, errorText);
+            lastError = errorText;
+            
+            // Don't break the loop, try the next format
+          }
+        } catch (fetchError) {
+          console.log(`Format ${i + 1} fetch error:`, fetchError);
+          lastError = fetchError instanceof Error ? fetchError.message : 'Unknown fetch error';
+        }
+      }
+
+      // Check if any format worked
+      if (!response || !response.ok) {
+        console.error('All API formats failed. Last error:', lastError);
+        
+        let errorMessage = 'Failed to create model with any supported API format';
+        
+        if (lastError) {
+          try {
+            const errorData = JSON.parse(lastError);
+            errorMessage = errorData.error || lastError;
+          } catch {
+            errorMessage = lastError;
+          }
+        }
+        
+        // Provide helpful error messages for common issues
+        if (errorMessage.includes('neither \'from\' or \'files\' was specified')) {
+          // Save ModelFile for manual CLI creation
+          this.saveModelFileForCLI(cleanName, cleanedModelfile);
+          errorMessage = `API Format Error: Your Ollama version (0.9.3) uses an unsupported API format. 
+
+A ModelFile has been saved to your Downloads folder as "${cleanName}-Modelfile.txt".
+
+To create the model manually, run these commands:
+1. ollama create ${cleanName} -f ~/Downloads/${cleanName}-Modelfile.txt
+2. Or copy the ModelFile content and save it as "Modelfile", then run: ollama create ${cleanName} -f Modelfile
+
+Alternative: Update Ollama to a newer version for full app compatibility.`;
+        } else if (errorMessage.includes('model not found') || errorMessage.includes('pull model')) {
+          errorMessage = `Base model not found. Please download the base model first by running: ollama pull ${fromMatch ? fromMatch[1] : 'model-name'}`;
+        } else if (errorMessage.includes('invalid modelfile')) {
+          errorMessage = `ModelFile format error: ${errorMessage}. Please check your ModelFile syntax.`;
         }
         
         throw new Error(errorMessage);
@@ -539,6 +629,104 @@ class OllamaService {
     } catch (error) {
       console.error('Error checking if model exists:', error);
       return false;
+    }
+  }
+
+  // Parse ModelFile for older Ollama API versions (0.9.x)
+  private parseModelFileForOldAPI(modelfile: string): { baseModel: string; structure: any } {
+    const lines = modelfile.split('\n').map(line => line.trim()).filter(line => line && !line.startsWith('#'));
+    
+    let baseModel = 'llama2'; // default
+    const parameters: any = {};
+    let system = '';
+    let template = '';
+    
+    for (const line of lines) {
+      if (line.toUpperCase().startsWith('FROM ')) {
+        const parts = line.split(/\s+/);
+        if (parts.length >= 2) {
+          baseModel = parts[1];
+        }
+      } else if (line.toUpperCase().startsWith('PARAMETER ')) {
+        const parts = line.split(/\s+/);
+        if (parts.length >= 3) {
+          const paramName = parts[1];
+          const paramValue = parts.slice(2).join(' ');
+          
+          // Convert numeric parameters to proper types for Ollama 0.9.3
+          const numericParams = ['temperature', 'top_p', 'top_k', 'repeat_penalty', 'num_ctx', 'num_predict', 'seed'];
+          if (numericParams.includes(paramName.toLowerCase())) {
+            const numValue = parseFloat(paramValue);
+            if (!isNaN(numValue)) {
+              // For integer parameters, convert to int
+              if (['top_k', 'num_ctx', 'num_predict', 'seed'].includes(paramName.toLowerCase())) {
+                parameters[paramName] = Math.round(numValue);
+              } else {
+                // For float parameters, keep as float
+                parameters[paramName] = numValue;
+              }
+            } else {
+              parameters[paramName] = paramValue; // Keep as string if not a valid number
+            }
+          } else {
+            parameters[paramName] = paramValue; // Keep as string for non-numeric params
+          }
+        }
+      } else if (line.toUpperCase().startsWith('SYSTEM ')) {
+        const systemContent = line.substring(7).trim();
+        // Remove quotes
+        if (systemContent.startsWith('"""') && systemContent.endsWith('"""')) {
+          system = systemContent.slice(3, -3);
+        } else if (systemContent.startsWith('"') && systemContent.endsWith('"')) {
+          system = systemContent.slice(1, -1);
+        } else {
+          system = systemContent;
+        }
+      } else if (line.toUpperCase().startsWith('TEMPLATE ')) {
+        const templateContent = line.substring(9).trim();
+        // Remove quotes
+        if (templateContent.startsWith('"""') && templateContent.endsWith('"""')) {
+          template = templateContent.slice(3, -3);
+        } else if (templateContent.startsWith('"') && templateContent.endsWith('"')) {
+          template = templateContent.slice(1, -1);
+        } else {
+          template = templateContent;
+        }
+      }
+    }
+    
+    const structure: any = {};
+    
+    if (Object.keys(parameters).length > 0) {
+      structure.parameters = parameters;
+    }
+    
+    if (system) {
+      structure.system = system;
+    }
+    
+    if (template) {
+      structure.template = template;
+    }
+    
+    return { baseModel, structure };
+  }
+
+  // Save ModelFile for manual CLI creation
+  private saveModelFileForCLI(modelName: string, modelfileContent: string): void {
+    try {
+      const blob = new Blob([modelfileContent], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${modelName}-Modelfile.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      console.log(`ModelFile saved as ${modelName}-Modelfile.txt`);
+    } catch (error) {
+      console.error('Error saving ModelFile:', error);
     }
   }
 }

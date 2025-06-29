@@ -254,38 +254,45 @@ export function Downloads() {
 
         <TabsContent value="browse" className="space-y-6">
           <Card className="p-6 border-4 border-black bg-white">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className="text-xl font-bold text-black">Ollama Model Library</h2>
                 <p className="text-gray-600">Browse the complete collection of available models</p>
               </div>
               <Button
                 onClick={() => window.open('https://ollama.com/search', '_blank')}
-                variant="outline"
-                className="border-2 border-black hover:bg-black hover:text-white"
+                className="bg-black text-white hover:bg-gray-800 border-2 border-black"
               >
                 <ExternalLink className="w-4 h-4 mr-2" />
-                Open in New Tab
+                Browse Ollama Library
               </Button>
             </div>
             
-            <div className="border-4 border-black rounded-lg overflow-hidden bg-white">
-              <iframe
-                src="https://ollama.com/search"
-                className="w-full h-[600px]"
-                title="Ollama Model Search"
-                style={{ border: 'none' }}
-              />
+            <div className="text-center space-y-4 py-12">
+              <div className="w-16 h-16 bg-black rounded-full flex items-center justify-center mx-auto">
+                <Globe className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-2xl font-bold text-black">Visit Ollama Model Library</h3>
+              <p className="text-gray-600 max-w-md mx-auto">
+                Browse thousands of pre-trained models, from general purpose chatbots to specialized tools for coding, writing, and analysis.
+              </p>
+              <Button
+                onClick={() => window.open('https://ollama.com/search', '_blank')}
+                className="bg-black text-white hover:bg-gray-800 border-2 border-black"
+              >
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Open Ollama Library
+              </Button>
             </div>
             
-            <div className="mt-4 p-4 bg-gray-50 border-2 border-gray-200 rounded-lg">
-              <h3 className="font-bold text-black mb-2">How to Download from the Library:</h3>
+            <div className="mt-6 p-4 bg-gray-50 border-2 border-gray-200 rounded-lg">
+              <h3 className="font-bold text-black mb-2">How to Download Models:</h3>
               <ol className="text-sm text-gray-700 space-y-1">
-                <li>1. Browse models in the frame above or click "Open in New Tab"</li>
-                <li>2. Find a model you want to download</li>
-                <li>3. Copy the model name (e.g., "llama3.2", "mistral", "codellama")</li>
-                <li>4. Use the "Quick Download" tab to download it locally</li>
-                <li>5. Or use the command: <code className="bg-gray-200 px-1 rounded">ollama pull model-name</code></li>
+                <li>1. <strong>Browse:</strong> Click "Open Ollama Library" above to explore available models</li>
+                <li>2. <strong>Find:</strong> Look for models that suit your needs (chat, coding, analysis, etc.)</li>
+                <li>3. <strong>Copy:</strong> Note the model name (e.g., "llama3.2", "mistral", "codellama")</li>
+                <li>4. <strong>Download:</strong> Use the "Quick Download" tab to download it locally</li>
+                <li>5. <strong>CLI Alternative:</strong> Or use the command: <code className="bg-gray-200 px-1 rounded">ollama pull model-name</code></li>
               </ol>
             </div>
           </Card>

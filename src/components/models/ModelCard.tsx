@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ollamaService } from '@/services/ollama';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 interface ModelCardProps {
   model: OllamaModel;
@@ -31,6 +32,7 @@ interface ModelCardProps {
 export function ModelCard({ model, onModelDeleted, onModelCopied }: ModelCardProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const formatSize = (bytes: number) => {
     const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
@@ -114,6 +116,15 @@ export function ModelCard({ model, onModelDeleted, onModelCopied }: ModelCardPro
     }
   };
 
+  const handleUseModel = () => {
+    // Navigate to AI Assistant page with the selected model
+    navigate('/assistant', { state: { selectedModel: model.name } });
+    toast({
+      title: "Opening AI Assistant",
+      description: `Starting chat with ${model.name}`,
+    });
+  };
+
   return (
     <Card className="p-6 border-4 border-black bg-white hover:shadow-lg transition-shadow duration-200">
       <div className="flex items-start justify-between mb-4">
@@ -183,6 +194,7 @@ export function ModelCard({ model, onModelDeleted, onModelCopied }: ModelCardPro
           size="sm" 
           className="flex-1 bg-black text-white hover:bg-gray-800 border-2 border-black"
           disabled={isLoading}
+          onClick={handleUseModel}
         >
           <Play className="w-4 h-4 mr-2" />
           Use Model
