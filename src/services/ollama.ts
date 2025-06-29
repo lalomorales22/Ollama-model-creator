@@ -59,28 +59,28 @@ class OllamaService {
       // Clean and ensure proper formatting
       const cleanedModelfile = this.cleanModelFile(modelfile);
       
-      // Final validation after cleaning
-      const finalValidation = this.validateModelFile(cleanedModelfile);
-      if (!finalValidation.isValid) {
-        throw new Error(`ModelFile validation failed after cleaning: ${finalValidation.errors.join(', ')}`);
-      }
-
       console.log('Creating model with ModelFile:', cleanedModelfile);
+      
+      // Create the request payload
+      const payload = {
+        name: cleanName,
+        modelfile: cleanedModelfile
+      };
+
+      console.log('Sending payload:', JSON.stringify(payload, null, 2));
       
       const response = await fetch(`${OLLAMA_BASE_URL}/create`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          name: cleanName,
-          modelfile: cleanedModelfile,
-          stream: true
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
         const errorText = await response.text();
+        console.error('Create model error response:', errorText);
+        
         let errorMessage = `Failed to create model: ${response.status} ${response.statusText}`;
         
         try {
