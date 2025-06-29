@@ -7,7 +7,8 @@ import {
   FileText,
   Cpu,
   Download,
-  PlayCircle
+  PlayCircle,
+  Zap
 } from 'lucide-react';
 
 const navigationItems = [
@@ -22,8 +23,8 @@ const navigationItems = [
 
 export function Sidebar() {
   return (
-    <aside className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-white border-r-4 border-black overflow-y-auto">
-      <nav className="p-4">
+    <aside className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-white border-r-4 border-black overflow-y-auto flex flex-col">
+      <nav className="p-4 flex-1">
         <ul className="space-y-2">
           {navigationItems.map((item) => (
             <li key={item.path}>
@@ -45,6 +46,14 @@ export function Sidebar() {
           ))}
         </ul>
       </nav>
+      
+      {/* Built by Bolt logo */}
+      <div className="p-4 border-t-2 border-gray-100">
+        <div className="flex items-center justify-center space-x-2 text-gray-400 hover:text-gray-600 transition-colors">
+          <Zap className="w-3 h-3" />
+          <span className="text-xs font-medium">Built by Bolt</span>
+        </div>
+      </div>
     </aside>
   );
 }
