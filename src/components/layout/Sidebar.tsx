@@ -47,11 +47,10 @@ export function Sidebar() {
         </ul>
       </nav>
       
-      {/* Built by Bolt logo */}
       <div className="p-4 border-t-2 border-gray-100">
         <div className="flex items-center justify-center space-x-2 text-gray-400 hover:text-gray-600 transition-colors">
           <Zap className="w-3 h-3" />
-          <span className="text-xs font-medium">Built by Bolt</span>
+          <span className="text-xs font-medium">Built with love</span>
         </div>
       </div>
     </aside>

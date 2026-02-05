@@ -18,6 +18,7 @@ Ollama Model Creator is a comprehensive web application that simplifies the proc
 - Chat with an AI assistant to describe your desired model behavior
 - Automatically generates complete ModelFiles with proper syntax
 - Supports all ModelFile instructions (FROM, PARAMETER, SYSTEM, TEMPLATE, etc.)
+- Real-time streaming responses with token-by-token display
 
 ### 📁 **ModelFile Management**
 - Save and organize your ModelFile collection
@@ -32,13 +33,62 @@ Ollama Model Creator is a comprehensive web application that simplifies the proc
 ### 📊 **Model Management Dashboard**
 - View all installed Ollama models
 - Monitor running models and resource usage
-- Download new models from the Ollama library
+- Real-time system stats (CPU, memory, GPU)
+- Model usage analytics with charts
+- Recent conversations widget
+
+### ⚡ **Power Features** (NEW!)
+
+#### 🎮 Model Playground
+- Dedicated chat interface for testing any model
+- Multi-turn conversations with history
+- Live parameter tuning (temperature, top_p, top_k, etc.)
+- 12 system prompt templates (Code Expert, Creative Writer, Socratic Teacher, etc.)
+- Token count and generation stats display
+- Export conversations as JSON/Markdown
+
+#### 🔧 Tool Calling Builder
+- Visual tool definition builder with JSON schema editor
+- Pre-built templates (weather, search, calculator, datetime)
+- Tool testing sandbox with auto-execute option
+- Export tool definitions as JSON
+
+#### ⚖️ Model Comparison Suite
+- Side-by-side comparison of 2-4 models simultaneously
+- Same prompt across multiple models
+- Blind mode (hidden model names for unbiased comparison)
+- Response quality metrics (speed, tokens, etc.)
+- Export comparison reports
+
+#### 📝 Advanced ModelFile Editor
+- Full-featured Monaco code editor
+- Custom syntax highlighting for ModelFile format
+- Auto-completion for instructions and parameters
+- Real-time validation with error highlighting
+- 5 built-in templates (Basic, Code Assistant, Creative Writer, etc.)
+
+#### 🧮 Embeddings Playground
+- Text embedding generation interface
+- Batch embedding for multiple texts
+- Visual embedding preview (dimension values)
+- Cosine similarity search demo
+- Export embeddings as JSON
+
+#### 📚 Model Library & Discovery
+- Curated catalog of 16 popular models
+- Category filters (General, Code, Vision, Embedding, Small)
+- Model variants selection (different sizes)
+- One-click model installation with progress tracking
+- Detailed model capabilities and descriptions
 
 ### 🔧 **Advanced Features**
 - Browse and download models from the official Ollama library
 - Monitor system resources and model performance
 - Comprehensive help documentation and tutorials
 - Customizable settings and preferences
+- Dark mode with system preference detection
+- Command palette (⌘K) for quick navigation
+- Keyboard shortcuts throughout the app
 
 ## 🎯 What Can You Create?
 
@@ -130,21 +180,44 @@ Ollama-model-creator/
 ├── src/
 │   ├── components/          # React components
 │   │   ├── assistant/       # AI Assistant chat interface
+│   │   ├── compare/         # Model comparison suite (NEW)
 │   │   ├── create/          # Model creation wizard
 │   │   ├── dashboard/       # Main dashboard
 │   │   ├── downloads/       # Model download manager
-│   │   ├── help/           # Help and documentation
-│   │   ├── layout/         # App layout components
-│   │   ├── models/         # Model management
-│   │   ├── modelfiles/     # ModelFile management
-│   │   ├── running/        # Running models monitor
-│   │   ├── settings/       # App settings
-│   │   └── ui/            # Reusable UI components
-│   ├── services/           # API services
-│   ├── types/             # TypeScript type definitions
-│   └── hooks/             # Custom React hooks
-├── public/                # Static assets
-└── docs/                 # Documentation
+│   │   ├── editor/          # Monaco ModelFile editor (NEW)
+│   │   ├── embeddings/      # Embeddings playground (NEW)
+│   │   ├── help/            # Help and documentation
+│   │   ├── layout/          # App layout components
+│   │   ├── library/         # Model library & discovery (NEW)
+│   │   ├── models/          # Model management
+│   │   ├── modelfiles/      # ModelFile management
+│   │   ├── multimodal/      # Image upload & vision (NEW)
+│   │   ├── playground/      # Model testing playground (NEW)
+│   │   ├── running/         # Running models monitor
+│   │   ├── settings/        # App settings
+│   │   ├── tools/           # Tool calling builder (NEW)
+│   │   └── ui/              # Reusable UI components (shadcn/ui)
+│   ├── stores/              # Zustand state management
+│   │   ├── chat-store.ts    # Chat history & conversations
+│   │   ├── models-store.ts  # Model cache & operations
+│   │   ├── settings-store.ts # App settings (persisted)
+│   │   ├── connection-store.ts # Ollama connection status
+│   │   ├── modelfiles-store.ts # ModelFile collection
+│   │   ├── activity-store.ts # Activity feed
+│   │   └── ui-store.ts      # UI state (sidebar, palette)
+│   ├── hooks/               # Custom React hooks
+│   │   ├── useStreamingChat.ts # Real-time streaming with abort
+│   │   ├── useOllama.ts     # Model operations
+│   │   └── useModelCreation.ts # Model creation flow
+│   ├── lib/                 # Utilities & SDK wrapper
+│   │   ├── ollama-client.ts # Official ollama-js SDK wrapper
+│   │   ├── constants.ts     # App constants
+│   │   └── utils.ts         # Utility functions
+│   ├── services/            # API services (legacy)
+│   └── types/               # TypeScript type definitions
+├── ollama-js/               # Official Ollama SDK reference
+├── public/                  # Static assets
+└── docs/                    # Documentation
 ```
 
 ## 🔧 Configuration
@@ -189,11 +262,25 @@ npm run type-check
 ### Tech Stack
 
 - **Frontend**: React 18 with TypeScript
-- **Styling**: Tailwind CSS with custom design system
-- **UI Components**: Shadcn/ui component library
+- **Styling**: Tailwind CSS with neo-brutalist design system
+- **UI Components**: shadcn/ui component library
+- **State Management**: Zustand with localStorage persistence
+- **Ollama Integration**: Official `ollama-js` SDK
+- **Code Editor**: Monaco Editor (VS Code's editor)
+- **Animations**: Framer Motion
+- **Charts**: Recharts
 - **Icons**: Lucide React
 - **Build Tool**: Vite
-- **State Management**: React hooks and context
+- **Routing**: React Router v6
+
+### Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `⌘K` / `Ctrl+K` | Open command palette |
+| `⌘/` / `Ctrl+/` | Toggle sidebar |
+| `⌘N` / `Ctrl+N` | New chat |
+| `⌘1-7` | Navigate to pages |
 
 ## 🤝 Contributing
 
@@ -247,9 +334,12 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🙏 Acknowledgments
 
 - **Ollama Team** - For creating the amazing Ollama platform
-- **Shadcn** - For the beautiful UI component library
+- **shadcn** - For the beautiful UI component library
 - **Lucide** - For the comprehensive icon set
 - **Tailwind CSS** - For the utility-first CSS framework
+- **Monaco Editor** - For the powerful code editing experience
+- **Framer Motion** - For smooth animations
+- **Zustand** - For simple and effective state management
 
 ## 🔗 Links
 

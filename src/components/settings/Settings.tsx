@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,7 +6,6 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { 
   Settings as SettingsIcon, 
@@ -29,176 +28,107 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { ollamaService } from '@/services/ollama';
-import { OllamaModel } from '@/types/ollama';
-
-interface AppSettings {
-  // Connection Settings
-  ollamaUrl: string;
-  connectionTimeout: number;
-  autoReconnect: boolean;
-  
-  // UI Settings
-  theme: 'light' | 'dark' | 'system';
-  compactMode: boolean;
-  showTooltips: boolean;
-  animationsEnabled: boolean;
-  
-  // Model Settings
-  defaultModel: string;
-  defaultTemperature: number;
-  defaultContextLength: number;
-  autoLoadModels: boolean;
-  
-  // Notifications
-  showNotifications: boolean;
-  notifyOnDownload: boolean;
-  notifyOnModelCreation: boolean;
-  notifyOnErrors: boolean;
-  
-  // Advanced
-  enableDebugMode: boolean;
-  logLevel: 'error' | 'warn' | 'info' | 'debug';
-  maxLogEntries: number;
-  clearDataOnExit: boolean;
-}
+import { useSettingsStore, AppSettings } from '@/stores/settings-store';
+import { useModelsStore } from '@/stores/models-store';
+import { useConnectionStore } from '@/stores/connection-store';
+import { ConnectionStatus } from '@/components/ConnectionStatus';
 
 export function Settings() {
-  const [settings, setSettings] = useState<AppSettings>({
-    // Connection Settings
+  const { settings, updateSettings, resetSettings: resetStoreSettings } = useSettingsStore();
+  const { models, isLoading: isLoadingModels, fetchModels } = useModelsStore();
+  const { status, checkConnection } = useConnectionStore();
+  
+  // Default settings fallback
+  const defaultSettings: AppSettings = {
     ollamaUrl: 'http://localhost:11434',
     connectionTimeout: 30000,
     autoReconnect: true,
-    
-    // UI Settings
-    theme: 'light',
+    theme: 'system',
+    sidebarCollapsed: false,
     compactMode: false,
     showTooltips: true,
     animationsEnabled: true,
-    
-    // Model Settings
-    defaultModel: 'llama3.2',
+    defaultModel: 'gpt-oss:20b',
     defaultTemperature: 0.8,
     defaultContextLength: 2048,
     autoLoadModels: true,
-    
-    // Notifications
     showNotifications: true,
     notifyOnDownload: true,
     notifyOnModelCreation: true,
     notifyOnErrors: true,
-    
-    // Advanced
     enableDebugMode: false,
     logLevel: 'info',
     maxLogEntries: 1000,
-    clearDataOnExit: false,
-  });
-
+    streamingEnabled: true,
+  };
+  
+  const [localSettings, setLocalSettings] = useState<AppSettings>(settings || defaultSettings);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'testing'>('disconnected');
-  const [availableModels, setAvailableModels] = useState<OllamaModel[]>([]);
-  const [isLoadingModels, setIsLoadingModels] = useState(false);
   const { toast } = useToast();
 
+  const connectionStatus = status === 'connected' ? 'connected' : status === 'connecting' ? 'testing' : 'disconnected';
+
   useEffect(() => {
-    loadSettings();
-    testConnection();
-    loadAvailableModels();
+    fetchModels();
+    checkConnection();
   }, []);
 
-  const loadSettings = () => {
-    try {
-      const saved = localStorage.getItem('ollama-app-settings');
-      if (saved) {
-        const parsedSettings = JSON.parse(saved);
-        setSettings({ ...settings, ...parsedSettings });
-      }
-    } catch (error) {
-      console.error('Error loading settings:', error);
+  // Sync local settings with store
+  useEffect(() => {
+    if (settings) {
+      setLocalSettings(settings);
     }
-  };
-
-  const loadAvailableModels = async () => {
-    setIsLoadingModels(true);
-    try {
-      const models = await ollamaService.getModels();
-      setAvailableModels(models);
-    } catch (error) {
-      console.error('Error loading models:', error);
-      // Set fallback models if Ollama is not available
-      setAvailableModels([]);
-    } finally {
-      setIsLoadingModels(false);
-    }
-  };
+  }, [settings]);
 
   const saveSettings = () => {
-    try {
-      localStorage.setItem('ollama-app-settings', JSON.stringify(settings));
-      setHasUnsavedChanges(false);
-      toast({
-        title: "Settings Saved",
-        description: "Your preferences have been saved successfully.",
-      });
-    } catch (error) {
-      toast({
-        title: "Error Saving Settings",
-        description: "Failed to save your settings. Please try again.",
-        variant: "destructive",
-      });
+    updateSettings(localSettings);
+    setHasUnsavedChanges(false);
+    toast({
+      title: "Settings Saved",
+      description: "Your preferences have been saved successfully.",
+    });
+    
+    // Apply theme immediately
+    if (localSettings.theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else if (localSettings.theme === 'light') {
+      document.documentElement.classList.remove('dark');
+    } else {
+      // System preference
+      if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
     }
   };
 
   const resetSettings = () => {
     if (window.confirm('Are you sure you want to reset all settings to defaults?')) {
-      const defaultSettings: AppSettings = {
-        ollamaUrl: 'http://localhost:11434',
-        connectionTimeout: 30000,
-        autoReconnect: true,
-        theme: 'light',
-        compactMode: false,
-        showTooltips: true,
-        animationsEnabled: true,
-        defaultModel: 'llama3.2',
-        defaultTemperature: 0.8,
-        defaultContextLength: 2048,
-        autoLoadModels: true,
-        showNotifications: true,
-        notifyOnDownload: true,
-        notifyOnModelCreation: true,
-        notifyOnErrors: true,
-        enableDebugMode: false,
-        logLevel: 'info',
-        maxLogEntries: 1000,
-        clearDataOnExit: false,
-      };
-      setSettings(defaultSettings);
-      setHasUnsavedChanges(true);
+      resetStoreSettings();
+      setLocalSettings(useSettingsStore.getState().settings);
+      setHasUnsavedChanges(false);
       toast({
         title: "Settings Reset",
-        description: "All settings have been reset to defaults. Don't forget to save!",
+        description: "All settings have been reset to defaults.",
       });
     }
   };
 
   const testConnection = async () => {
-    setConnectionStatus('testing');
-    try {
-      const response = await fetch(`${settings.ollamaUrl}/api/version`, {
-        method: 'GET',
-        signal: AbortSignal.timeout(settings.connectionTimeout)
+    await checkConnection();
+    if (status === 'connected') {
+      fetchModels();
+      toast({
+        title: "Connection Successful",
+        description: "Connected to Ollama service.",
       });
-      
-      if (response.ok) {
-        setConnectionStatus('connected');
-        // Reload models when connection is successful
-        loadAvailableModels();
-      } else {
-        setConnectionStatus('disconnected');
-      }
-    } catch (error) {
-      setConnectionStatus('disconnected');
+    } else {
+      toast({
+        title: "Connection Failed",
+        description: "Could not connect to Ollama. Make sure it's running.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -214,7 +144,7 @@ export function Settings() {
   };
 
   const exportSettings = () => {
-    const dataStr = JSON.stringify(settings, null, 2);
+    const dataStr = JSON.stringify(localSettings, null, 2);
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(dataBlob);
     const link = document.createElement('a');
@@ -232,47 +162,47 @@ export function Settings() {
   };
 
   const updateSetting = <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
+    setLocalSettings(prev => ({ ...prev, [key]: value }));
     setHasUnsavedChanges(true);
   };
 
   // Get available models for dropdown
   const getModelOptions = () => {
-    const fallbackModels = [
+    if (models.length > 0) {
+      return models.map(model => ({
+        name: model.name,
+        displayName: model.name
+      }));
+    }
+
+    // Fallback models
+    return [
       { name: 'llama3.2', displayName: 'Llama 3.2' },
       { name: 'llama3.1', displayName: 'Llama 3.1' },
       { name: 'mistral', displayName: 'Mistral' },
       { name: 'codellama', displayName: 'Code Llama' },
       { name: 'gemma2', displayName: 'Gemma 2' },
     ];
-
-    if (availableModels.length > 0) {
-      return availableModels.map(model => ({
-        name: model.name,
-        displayName: model.name
-      }));
-    }
-
-    return fallbackModels;
   };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-black mb-2">Settings</h1>
-          <p className="text-gray-600">Configure your Ollama ModelFile Creator preferences</p>
+          <h1 className="text-3xl font-bold text-black dark:text-white mb-2">Settings</h1>
+          <p className="text-gray-600 dark:text-gray-400">Configure your Ollama ModelFile Creator preferences</p>
         </div>
-        <div className="flex space-x-2">
+        <div className="flex items-center space-x-2">
+          <ConnectionStatus />
           {hasUnsavedChanges && (
-            <Badge variant="outline" className="border-yellow-500 text-yellow-700 bg-yellow-50">
+            <Badge variant="outline" className="border-yellow-500 text-yellow-700 bg-yellow-50 dark:bg-yellow-900 dark:text-yellow-300">
               Unsaved Changes
             </Badge>
           )}
           <Button
             onClick={saveSettings}
             disabled={!hasUnsavedChanges}
-            className="bg-black text-white hover:bg-gray-800 border-2 border-black"
+            className="bg-black dark:bg-gray-700 text-white hover:bg-gray-800 dark:hover:bg-gray-600 border-2 border-black dark:border-gray-600"
           >
             <Save className="w-4 h-4 mr-2" />
             Save Settings
@@ -281,17 +211,17 @@ export function Settings() {
       </div>
 
       <Tabs defaultValue="connection" className="w-full">
-        <TabsList className="grid w-full grid-cols-5 border-4 border-black bg-white">
+        <TabsList className="grid w-full grid-cols-5 border-4 border-black dark:border-gray-700 bg-white dark:bg-gray-900">
           <TabsTrigger 
             value="connection" 
-            className="data-[state=active]:bg-black data-[state=active]:text-white border-2 border-black"
+            className="data-[state=active]:bg-black data-[state=active]:text-white dark:data-[state=active]:bg-gray-700 border-2 border-black dark:border-gray-600"
           >
             <Server className="w-4 h-4 mr-2" />
             Connection
           </TabsTrigger>
           <TabsTrigger 
             value="interface" 
-            className="data-[state=active]:bg-black data-[state=active]:text-white border-2 border-black"
+            className="data-[state=active]:bg-black data-[state=active]:text-white dark:data-[state=active]:bg-gray-700 border-2 border-black dark:border-gray-600"
           >
             <Palette className="w-4 h-4 mr-2" />
             Interface
@@ -350,7 +280,7 @@ export function Settings() {
                 <Label htmlFor="ollamaUrl">Ollama API URL</Label>
                 <Input
                   id="ollamaUrl"
-                  value={settings.ollamaUrl}
+                  value={localSettings.ollamaUrl}
                   onChange={(e) => updateSetting('ollamaUrl', e.target.value)}
                   className="border-2 border-black"
                   placeholder="http://localhost:11434"
@@ -365,7 +295,7 @@ export function Settings() {
                 <Input
                   id="connectionTimeout"
                   type="number"
-                  value={settings.connectionTimeout}
+                  value={localSettings.connectionTimeout}
                   onChange={(e) => updateSetting('connectionTimeout', parseInt(e.target.value))}
                   className="border-2 border-black"
                   min="1000"
@@ -385,7 +315,7 @@ export function Settings() {
                 </div>
                 <Switch
                   id="autoReconnect"
-                  checked={settings.autoReconnect}
+                  checked={localSettings.autoReconnect}
                   onCheckedChange={(checked) => updateSetting('autoReconnect', checked)}
                 />
               </div>
@@ -399,7 +329,7 @@ export function Settings() {
             <div className="space-y-4">
               <div>
                 <Label htmlFor="theme">Theme</Label>
-                <Select value={settings.theme} onValueChange={(value: any) => updateSetting('theme', value)}>
+                <Select value={localSettings.theme} onValueChange={(value: any) => updateSetting('theme', value)}>
                   <SelectTrigger className="border-2 border-black">
                     <SelectValue />
                   </SelectTrigger>
@@ -435,7 +365,7 @@ export function Settings() {
                 </div>
                 <Switch
                   id="compactMode"
-                  checked={settings.compactMode}
+                  checked={localSettings.compactMode}
                   onCheckedChange={(checked) => updateSetting('compactMode', checked)}
                 />
               </div>
@@ -449,7 +379,7 @@ export function Settings() {
                 </div>
                 <Switch
                   id="showTooltips"
-                  checked={settings.showTooltips}
+                  checked={localSettings.showTooltips}
                   onCheckedChange={(checked) => updateSetting('showTooltips', checked)}
                 />
               </div>
@@ -463,7 +393,7 @@ export function Settings() {
                 </div>
                 <Switch
                   id="animationsEnabled"
-                  checked={settings.animationsEnabled}
+                  checked={localSettings.animationsEnabled}
                   onCheckedChange={(checked) => updateSetting('animationsEnabled', checked)}
                 />
               </div>
@@ -476,7 +406,7 @@ export function Settings() {
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-bold text-black">Model Defaults</h3>
               <Button
-                onClick={loadAvailableModels}
+                onClick={fetchModels}
                 variant="outline"
                 size="sm"
                 disabled={isLoadingModels}
@@ -490,7 +420,7 @@ export function Settings() {
               <div>
                 <Label htmlFor="defaultModel">Default Model</Label>
                 <Select 
-                  value={settings.defaultModel} 
+                  value={localSettings.defaultModel} 
                   onValueChange={(value) => updateSetting('defaultModel', value)}
                 >
                   <SelectTrigger className="border-2 border-black">
@@ -506,7 +436,7 @@ export function Settings() {
                 </Select>
                 <p className="text-xs text-gray-500 mt-1">
                   Default model for AI Assistant and new ModelFiles
-                  {availableModels.length === 0 && (
+                  {models.length === 0 && (
                     <span className="text-yellow-600"> • Showing fallback models (Ollama not connected)</span>
                   )}
                 </p>
@@ -520,7 +450,7 @@ export function Settings() {
                   step="0.1"
                   min="0.1"
                   max="2.0"
-                  value={settings.defaultTemperature}
+                  value={localSettings.defaultTemperature}
                   onChange={(e) => updateSetting('defaultTemperature', parseFloat(e.target.value))}
                   className="border-2 border-black"
                 />
@@ -536,7 +466,7 @@ export function Settings() {
                   type="number"
                   min="512"
                   max="32768"
-                  value={settings.defaultContextLength}
+                  value={localSettings.defaultContextLength}
                   onChange={(e) => updateSetting('defaultContextLength', parseInt(e.target.value))}
                   className="border-2 border-black"
                 />
@@ -554,7 +484,7 @@ export function Settings() {
                 </div>
                 <Switch
                   id="autoLoadModels"
-                  checked={settings.autoLoadModels}
+                  checked={localSettings.autoLoadModels}
                   onCheckedChange={(checked) => updateSetting('autoLoadModels', checked)}
                 />
               </div>
@@ -575,7 +505,7 @@ export function Settings() {
                 </div>
                 <Switch
                   id="showNotifications"
-                  checked={settings.showNotifications}
+                  checked={localSettings.showNotifications}
                   onCheckedChange={(checked) => updateSetting('showNotifications', checked)}
                 />
               </div>
@@ -589,7 +519,7 @@ export function Settings() {
                 </div>
                 <Switch
                   id="notifyOnDownload"
-                  checked={settings.notifyOnDownload}
+                  checked={localSettings.notifyOnDownload}
                   onCheckedChange={(checked) => updateSetting('notifyOnDownload', checked)}
                   disabled={!settings.showNotifications}
                 />
@@ -604,7 +534,7 @@ export function Settings() {
                 </div>
                 <Switch
                   id="notifyOnModelCreation"
-                  checked={settings.notifyOnModelCreation}
+                  checked={localSettings.notifyOnModelCreation}
                   onCheckedChange={(checked) => updateSetting('notifyOnModelCreation', checked)}
                   disabled={!settings.showNotifications}
                 />
@@ -619,7 +549,7 @@ export function Settings() {
                 </div>
                 <Switch
                   id="notifyOnErrors"
-                  checked={settings.notifyOnErrors}
+                  checked={localSettings.notifyOnErrors}
                   onCheckedChange={(checked) => updateSetting('notifyOnErrors', checked)}
                   disabled={!settings.showNotifications}
                 />
@@ -641,14 +571,14 @@ export function Settings() {
                 </div>
                 <Switch
                   id="enableDebugMode"
-                  checked={settings.enableDebugMode}
+                  checked={localSettings.enableDebugMode}
                   onCheckedChange={(checked) => updateSetting('enableDebugMode', checked)}
                 />
               </div>
 
               <div>
                 <Label htmlFor="logLevel">Log Level</Label>
-                <Select value={settings.logLevel} onValueChange={(value: any) => updateSetting('logLevel', value)}>
+                <Select value={localSettings.logLevel} onValueChange={(value: any) => updateSetting('logLevel', value)}>
                   <SelectTrigger className="border-2 border-black">
                     <SelectValue />
                   </SelectTrigger>
@@ -671,7 +601,7 @@ export function Settings() {
                   type="number"
                   min="100"
                   max="10000"
-                  value={settings.maxLogEntries}
+                  value={localSettings.maxLogEntries}
                   onChange={(e) => updateSetting('maxLogEntries', parseInt(e.target.value))}
                   className="border-2 border-black"
                 />
@@ -689,7 +619,7 @@ export function Settings() {
                 </div>
                 <Switch
                   id="clearDataOnExit"
-                  checked={settings.clearDataOnExit}
+                  checked={localSettings.clearDataOnExit}
                   onCheckedChange={(checked) => updateSetting('clearDataOnExit', checked)}
                 />
               </div>
