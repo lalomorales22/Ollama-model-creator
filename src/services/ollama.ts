@@ -147,13 +147,13 @@ class OllamaService {
       const createRequest: Record<string, unknown> = {
         model: name,
         from: parsed.from,
-        stream: true,
       };
 
       if (parsed.system) createRequest.system = parsed.system;
       if (parsed.template) createRequest.template = parsed.template;
       if (parsed.license) createRequest.license = parsed.license;
-      if (parsed.adapter) createRequest.adapters = { [parsed.adapter]: '' };
+      // Note: adapters require pre-uploaded blob digests — path-based adapters
+      // are handled by Ollama when using the modelfile string approach instead.
       if (Object.keys(parsed.parameters).length > 0) createRequest.parameters = parsed.parameters;
       if (parsed.messages.length > 0) createRequest.messages = parsed.messages;
       if (parsed.quantize) createRequest.quantize = parsed.quantize;
