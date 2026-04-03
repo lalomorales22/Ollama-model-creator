@@ -1,9 +1,10 @@
 /**
  * Ollama Client Wrapper
- * 
- * A thin wrapper around the official ollama-js SDK that provides:
+ *
+ * A wrapper around the official ollama-js SDK that provides:
  * - Singleton instance management
  * - Connection status tracking
+ * - Full Ollama API coverage (generate, chat, create, pull, push, load/unload, embed)
  * - Error normalization
  * - Event emitters for connection state changes
  */
@@ -116,17 +117,17 @@ class OllamaClient {
    */
   async checkConnection(): Promise<boolean> {
     this.updateConnectionState({ status: 'connecting' });
-    
+
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), CONNECTION_TIMEOUT);
-      
+
       const response = await fetch(`${this._host}/api/version`, {
         signal: controller.signal,
       });
-      
+
       clearTimeout(timeout);
-      
+
       if (response.ok) {
         const data = await response.json();
         this.updateConnectionState({
@@ -187,10 +188,11 @@ class OllamaClient {
 
   /**
    * Get model information
+   * @param verbose - Include full model info (tensors, etc.)
    */
-  async show(model: string): Promise<ShowResponse> {
+  async show(model: string, verbose?: boolean): Promise<ShowResponse> {
     try {
-      return await this.client.show({ model });
+      return await this.client.show({ model, verbose });
     } catch (error) {
       this.handleError(error);
       throw error;
@@ -206,7 +208,27 @@ class OllamaClient {
   ): Promise<void> {
     try {
       const stream = await this.client.pull({ model, stream: true });
-      
+
+      for await (const progress of stream) {
+        onProgress?.(progress);
+      }
+    } catch (error) {
+      this.handleError(error);
+      throw error;
+    }
+  }
+
+  /**
+   * Push a model to the registry
+   */
+  async push(
+    model: string,
+    onProgress?: (progress: ProgressResponse) => void,
+    insecure?: boolean
+  ): Promise<void> {
+    try {
+      const stream = await this.client.push({ model, insecure, stream: true });
+
       for await (const progress of stream) {
         onProgress?.(progress);
       }
@@ -225,7 +247,7 @@ class OllamaClient {
   ): Promise<void> {
     try {
       const stream = await this.client.create({ ...request, stream: true });
-      
+
       for await (const progress of stream) {
         onProgress?.(progress);
       }
@@ -276,6 +298,31 @@ class OllamaClient {
     }
   }
 
+  /**
+   * Load a model into memory by sending an empty generate request.
+   * @param keepAlive - How long to keep the model loaded (e.g. "5m", "1h", "-1" for forever)
+   */
+  async loadModel(model: string, keepAlive: string = '5m'): Promise<void> {
+    try {
+      await this.client.generate({ model, prompt: '', keep_alive: keepAlive, stream: false } as any);
+    } catch (error) {
+      this.handleError(error);
+      throw error;
+    }
+  }
+
+  /**
+   * Unload a model from memory by setting keep_alive to 0.
+   */
+  async unloadModel(model: string): Promise<void> {
+    try {
+      await this.client.generate({ model, prompt: '', keep_alive: '0', stream: false } as any);
+    } catch (error) {
+      this.handleError(error);
+      throw error;
+    }
+  }
+
   // ============================================
   // Chat & Generation
   // ============================================
@@ -300,7 +347,7 @@ class OllamaClient {
   ): AsyncGenerator<ChatResponse, void, unknown> {
     try {
       const stream = await this.client.chat({ ...request, stream: true });
-      
+
       for await (const chunk of stream) {
         yield chunk;
       }
@@ -330,7 +377,7 @@ class OllamaClient {
   ): AsyncGenerator<GenerateResponse, void, unknown> {
     try {
       const stream = await this.client.generate({ ...request, stream: true });
-      
+
       for await (const chunk of stream) {
         yield chunk;
       }
@@ -353,6 +400,24 @@ class OllamaClient {
     } catch (error) {
       this.handleError(error);
       throw error;
+    }
+  }
+
+  // ============================================
+  // Blob Operations
+  // ============================================
+
+  /**
+   * Check if a blob exists on the server
+   */
+  async checkBlob(digest: string): Promise<boolean> {
+    try {
+      const response = await fetch(`${this._host}/api/blobs/${digest}`, {
+        method: 'HEAD',
+      });
+      return response.ok;
+    } catch {
+      return false;
     }
   }
 

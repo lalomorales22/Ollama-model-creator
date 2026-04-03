@@ -14,6 +14,7 @@ import {
   Bell, 
   Shield,
   Download,
+  Upload,
   Trash2,
   RefreshCw,
   Save,
@@ -154,11 +155,40 @@ export function Settings() {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    
+
     toast({
       title: "Settings Exported",
       description: "Your settings have been downloaded as a JSON file.",
     });
+  };
+
+  const importSettings = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const imported = JSON.parse(text);
+        // Merge with defaults to handle missing keys
+        const merged = { ...defaultSettings, ...imported };
+        setLocalSettings(merged);
+        setHasUnsavedChanges(true);
+        toast({
+          title: "Settings Imported",
+          description: "Settings loaded from file. Click Save to apply.",
+        });
+      } catch {
+        toast({
+          title: "Import Failed",
+          description: "Invalid settings file.",
+          variant: "destructive",
+        });
+      }
+    };
+    input.click();
   };
 
   const updateSetting = <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
@@ -202,7 +232,7 @@ export function Settings() {
           <Button
             onClick={saveSettings}
             disabled={!hasUnsavedChanges}
-            className="bg-black dark:bg-gray-700 text-white hover:bg-gray-800 dark:hover:bg-gray-600 border-2 border-black dark:border-gray-600"
+            className="bg-black dark:bg-gray-700 text-white hover:bg-gray-800 dark:hover:bg-gray-600 border-2 border-gray-300 dark:border-gray-600"
           >
             <Save className="w-4 h-4 mr-2" />
             Save Settings
@@ -211,38 +241,38 @@ export function Settings() {
       </div>
 
       <Tabs defaultValue="connection" className="w-full">
-        <TabsList className="grid w-full grid-cols-5 border-4 border-black dark:border-gray-700 bg-white dark:bg-gray-900">
+        <TabsList className="grid w-full grid-cols-5 border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
           <TabsTrigger 
             value="connection" 
-            className="data-[state=active]:bg-black data-[state=active]:text-white dark:data-[state=active]:bg-gray-700 border-2 border-black dark:border-gray-600"
+            className="data-[state=active]:bg-black data-[state=active]:text-white dark:data-[state=active]:bg-gray-700 border-2 border-gray-300 dark:border-gray-600"
           >
             <Server className="w-4 h-4 mr-2" />
             Connection
           </TabsTrigger>
           <TabsTrigger 
             value="interface" 
-            className="data-[state=active]:bg-black data-[state=active]:text-white dark:data-[state=active]:bg-gray-700 border-2 border-black dark:border-gray-600"
+            className="data-[state=active]:bg-black data-[state=active]:text-white dark:data-[state=active]:bg-gray-700 border-2 border-gray-300 dark:border-gray-600"
           >
             <Palette className="w-4 h-4 mr-2" />
             Interface
           </TabsTrigger>
           <TabsTrigger 
             value="models" 
-            className="data-[state=active]:bg-black data-[state=active]:text-white border-2 border-black"
+            className="data-[state=active]:bg-black data-[state=active]:text-white border-2 border-gray-300 dark:border-gray-600"
           >
             <Cpu className="w-4 h-4 mr-2" />
             Models
           </TabsTrigger>
           <TabsTrigger 
             value="notifications" 
-            className="data-[state=active]:bg-black data-[state=active]:text-white border-2 border-black"
+            className="data-[state=active]:bg-black data-[state=active]:text-white border-2 border-gray-300 dark:border-gray-600"
           >
             <Bell className="w-4 h-4 mr-2" />
             Notifications
           </TabsTrigger>
           <TabsTrigger 
             value="advanced" 
-            className="data-[state=active]:bg-black data-[state=active]:text-white border-2 border-black"
+            className="data-[state=active]:bg-black data-[state=active]:text-white border-2 border-gray-300 dark:border-gray-600"
           >
             <Shield className="w-4 h-4 mr-2" />
             Advanced
@@ -250,9 +280,9 @@ export function Settings() {
         </TabsList>
 
         <TabsContent value="connection" className="space-y-6">
-          <Card className="p-6 border-4 border-black bg-white">
+          <Card className="p-6 border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-black">Ollama Connection</h3>
+              <h3 className="text-xl font-bold dark:text-white">Ollama Connection</h3>
               <div className="flex items-center space-x-2">
                 <div className={`w-3 h-3 rounded-full ${
                   connectionStatus === 'connected' ? 'bg-green-500' :
@@ -268,7 +298,7 @@ export function Settings() {
                   onClick={testConnection}
                   variant="outline"
                   size="sm"
-                  className="border-2 border-black hover:bg-black hover:text-white"
+                  className="border-2 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800"
                 >
                   <RefreshCw className="w-4 h-4" />
                 </Button>
@@ -282,7 +312,7 @@ export function Settings() {
                   id="ollamaUrl"
                   value={localSettings.ollamaUrl}
                   onChange={(e) => updateSetting('ollamaUrl', e.target.value)}
-                  className="border-2 border-black"
+                  className="border-2 border-gray-300 dark:border-gray-600"
                   placeholder="http://localhost:11434"
                 />
                 <p className="text-xs text-gray-500 mt-1">
@@ -297,7 +327,7 @@ export function Settings() {
                   type="number"
                   value={localSettings.connectionTimeout}
                   onChange={(e) => updateSetting('connectionTimeout', parseInt(e.target.value))}
-                  className="border-2 border-black"
+                  className="border-2 border-gray-300 dark:border-gray-600"
                   min="1000"
                   max="60000"
                 />
@@ -324,13 +354,13 @@ export function Settings() {
         </TabsContent>
 
         <TabsContent value="interface" className="space-y-6">
-          <Card className="p-6 border-4 border-black bg-white">
-            <h3 className="text-xl font-bold text-black mb-4">Appearance</h3>
+          <Card className="p-6 border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+            <h3 className="text-xl font-bold dark:text-white mb-4">Appearance</h3>
             <div className="space-y-4">
               <div>
                 <Label htmlFor="theme">Theme</Label>
                 <Select value={localSettings.theme} onValueChange={(value: any) => updateSetting('theme', value)}>
-                  <SelectTrigger className="border-2 border-black">
+                  <SelectTrigger className="border-2 border-gray-300 dark:border-gray-600">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -402,15 +432,15 @@ export function Settings() {
         </TabsContent>
 
         <TabsContent value="models" className="space-y-6">
-          <Card className="p-6 border-4 border-black bg-white">
+          <Card className="p-6 border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-black">Model Defaults</h3>
+              <h3 className="text-xl font-bold dark:text-white">Model Defaults</h3>
               <Button
                 onClick={fetchModels}
                 variant="outline"
                 size="sm"
                 disabled={isLoadingModels}
-                className="border-2 border-black hover:bg-black hover:text-white"
+                className="border-2 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800"
               >
                 <RefreshCw className={`w-4 h-4 mr-2 ${isLoadingModels ? 'animate-spin' : ''}`} />
                 Refresh Models
@@ -423,7 +453,7 @@ export function Settings() {
                   value={localSettings.defaultModel} 
                   onValueChange={(value) => updateSetting('defaultModel', value)}
                 >
-                  <SelectTrigger className="border-2 border-black">
+                  <SelectTrigger className="border-2 border-gray-300 dark:border-gray-600">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -452,7 +482,7 @@ export function Settings() {
                   max="2.0"
                   value={localSettings.defaultTemperature}
                   onChange={(e) => updateSetting('defaultTemperature', parseFloat(e.target.value))}
-                  className="border-2 border-black"
+                  className="border-2 border-gray-300 dark:border-gray-600"
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   Default creativity setting for new models (0.1 = focused, 2.0 = creative)
@@ -468,7 +498,7 @@ export function Settings() {
                   max="32768"
                   value={localSettings.defaultContextLength}
                   onChange={(e) => updateSetting('defaultContextLength', parseInt(e.target.value))}
-                  className="border-2 border-black"
+                  className="border-2 border-gray-300 dark:border-gray-600"
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   Default context window size for new models
@@ -493,8 +523,8 @@ export function Settings() {
         </TabsContent>
 
         <TabsContent value="notifications" className="space-y-6">
-          <Card className="p-6 border-4 border-black bg-white">
-            <h3 className="text-xl font-bold text-black mb-4">Notification Preferences</h3>
+          <Card className="p-6 border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+            <h3 className="text-xl font-bold dark:text-white mb-4">Notification Preferences</h3>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -559,8 +589,8 @@ export function Settings() {
         </TabsContent>
 
         <TabsContent value="advanced" className="space-y-6">
-          <Card className="p-6 border-4 border-black bg-white">
-            <h3 className="text-xl font-bold text-black mb-4">Advanced Settings</h3>
+          <Card className="p-6 border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+            <h3 className="text-xl font-bold dark:text-white mb-4">Advanced Settings</h3>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -579,7 +609,7 @@ export function Settings() {
               <div>
                 <Label htmlFor="logLevel">Log Level</Label>
                 <Select value={localSettings.logLevel} onValueChange={(value: any) => updateSetting('logLevel', value)}>
-                  <SelectTrigger className="border-2 border-black">
+                  <SelectTrigger className="border-2 border-gray-300 dark:border-gray-600">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -603,7 +633,7 @@ export function Settings() {
                   max="10000"
                   value={localSettings.maxLogEntries}
                   onChange={(e) => updateSetting('maxLogEntries', parseInt(e.target.value))}
-                  className="border-2 border-black"
+                  className="border-2 border-gray-300 dark:border-gray-600"
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   Maximum number of log entries to keep in memory
@@ -626,25 +656,33 @@ export function Settings() {
             </div>
           </Card>
 
-          <Card className="p-6 border-4 border-black bg-white">
-            <h3 className="text-xl font-bold text-black mb-4">Data Management</h3>
+          <Card className="p-6 border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+            <h3 className="text-xl font-bold dark:text-white mb-4">Data Management</h3>
             <div className="space-y-4">
-              <div className="flex space-x-4">
+              <div className="grid grid-cols-3 gap-3">
                 <Button
                   onClick={exportSettings}
                   variant="outline"
-                  className="flex-1 border-2 border-black hover:bg-black hover:text-white"
+                  className="border-2 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800"
                 >
                   <Download className="w-4 h-4 mr-2" />
-                  Export Settings
+                  Export
+                </Button>
+                <Button
+                  onClick={importSettings}
+                  variant="outline"
+                  className="border-2 border-blue-500 text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  Import
                 </Button>
                 <Button
                   onClick={resetSettings}
                   variant="outline"
-                  className="flex-1 border-2 border-yellow-500 text-yellow-700 hover:bg-yellow-50"
+                  className="border-2 border-yellow-500 text-yellow-700 dark:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/20"
                 >
                   <RefreshCw className="w-4 h-4 mr-2" />
-                  Reset to Defaults
+                  Reset
                 </Button>
               </div>
               
@@ -657,7 +695,7 @@ export function Settings() {
                 Clear All App Data
               </Button>
               
-              <div className="p-4 bg-yellow-50 border-2 border-yellow-200 rounded-lg">
+              <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-200 dark:border-yellow-800 rounded-lg">
                 <div className="flex items-start space-x-3">
                   <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5" />
                   <div>

@@ -144,7 +144,7 @@ export function ModelList() {
         </Card>
       )}
 
-      <Card className="p-4 border-4 border-black dark:border-gray-700 bg-white dark:bg-gray-900">
+      <Card className="p-4 border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -201,7 +201,7 @@ export function ModelList() {
       </Card>
 
       {filteredModels.length === 0 ? (
-        <Card className="p-8 border-4 border-black dark:border-gray-700 bg-white dark:bg-gray-900 text-center">
+        <Card className="p-8 border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-center">
           <div className="space-y-4">
             <div className="w-16 h-16 bg-black dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto">
               <Plus className="w-8 h-8 text-white" />

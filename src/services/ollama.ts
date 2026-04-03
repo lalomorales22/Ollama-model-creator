@@ -1,13 +1,12 @@
 /**
  * Ollama Service
- * 
- * Legacy compatibility layer that wraps the new SDK-based client.
- * This allows existing components to work while migration happens.
- * 
- * @deprecated Use hooks (useOllama, useStreamingChat) or stores directly
+ *
+ * High-level service layer wrapping the Ollama client.
+ * Provides model operations, creation, validation, and management.
  */
 
 import { ollamaClient } from '@/lib/ollama-client';
+import { VALID_PARAMETER_NAMES, MODELFILE_INSTRUCTIONS } from '@/lib/constants';
 import type { OllamaModel } from '@/types';
 
 export interface OllamaResponse {
@@ -54,19 +53,17 @@ class OllamaService {
 
   /**
    * Generate a response (non-streaming)
-   * @deprecated Use useStreamingChat hook for streaming responses
    */
   async generateResponse(model: string, prompt: string, stream: boolean = false): Promise<OllamaResponse> {
     try {
       if (stream) {
-        // For backward compatibility, collect all chunks
         let fullResponse = '';
         const streamGenerator = ollamaClient.generateStream({ model, prompt });
-        
+
         for await (const chunk of streamGenerator) {
           fullResponse += chunk.response || '';
         }
-        
+
         return {
           model,
           created_at: new Date().toISOString(),
@@ -74,9 +71,9 @@ class OllamaService {
           done: true,
         };
       }
-      
+
       const response = await ollamaClient.generate({ model, prompt, stream: false });
-      
+
       return {
         model: response.model,
         created_at: response.created_at?.toString() || new Date().toISOString(),
@@ -120,58 +117,146 @@ class OllamaService {
   }
 
   /**
-   * Create a custom model
+   * Create a custom model from a Modelfile string.
+   * Parses the Modelfile and sends all instructions through the API.
    */
   async createModel(name: string, modelfile: string, onProgress?: (progress: string) => void): Promise<void> {
     try {
-      // Validate first
       const validation = this.validateModelFile(modelfile);
       if (!validation.isValid) {
         throw new Error(`ModelFile validation failed: ${validation.errors.join(', ')}`);
       }
 
-      // Parse modelfile to extract configuration
-      const fromMatch = modelfile.match(/FROM\s+([^\s\n]+)/i);
-      const baseModel = fromMatch?.[1] || 'llama3.2';
-      
+      // Parse all Modelfile instructions
+      const parsed = this.parseModelFile(modelfile);
+
       // Check if base model exists
-      const modelExists = await this.checkModelExists(baseModel);
-      if (!modelExists) {
-        throw new Error(`Base model "${baseModel}" is not installed. Please download it first.`);
+      if (parsed.from) {
+        // Only check if it looks like a model name (not a file path)
+        if (!parsed.from.startsWith('/') && !parsed.from.startsWith('./') && !parsed.from.endsWith('.gguf')) {
+          const modelExists = await this.checkModelExists(parsed.from);
+          if (!modelExists) {
+            throw new Error(`Base model "${parsed.from}" is not installed. Please download it first.`);
+          }
+        }
       }
-      
-      // Extract system prompt
-      const systemMatch = modelfile.match(/SYSTEM\s+"""([^]*)"""/i) ||
-                         modelfile.match(/SYSTEM\s+"([^"]*)"/i);
-      const system = systemMatch?.[1];
-      
-      // Extract parameters
-      const parameters: Record<string, unknown> = {};
-      const paramMatches = modelfile.matchAll(/PARAMETER\s+(\w+)\s+([^\n]+)/gi);
-      for (const match of paramMatches) {
-        const value = parseFloat(match[2]);
-        parameters[match[1]] = isNaN(value) ? match[2] : value;
-      }
-      
+
       onProgress?.('Starting model creation...');
-      
+
+      // Build create request with all supported fields
+      const createRequest: Record<string, unknown> = {
+        model: name,
+        from: parsed.from,
+        stream: true,
+      };
+
+      if (parsed.system) createRequest.system = parsed.system;
+      if (parsed.template) createRequest.template = parsed.template;
+      if (parsed.license) createRequest.license = parsed.license;
+      if (parsed.adapter) createRequest.adapters = { [parsed.adapter]: '' };
+      if (Object.keys(parsed.parameters).length > 0) createRequest.parameters = parsed.parameters;
+      if (parsed.messages.length > 0) createRequest.messages = parsed.messages;
+      if (parsed.quantize) createRequest.quantize = parsed.quantize;
+
       await ollamaClient.create(
-        {
-          model: name,
-          from: baseModel,
-          system,
-          parameters: Object.keys(parameters).length > 0 ? parameters : undefined,
-        },
+        createRequest as any,
         (progress) => {
           onProgress?.(progress.status || 'Processing...');
         }
       );
-      
+
       onProgress?.('Model created successfully!');
     } catch (error) {
       console.error('Error creating model:', error);
       throw error;
     }
+  }
+
+  /**
+   * Parse a Modelfile string into structured components
+   */
+  parseModelFile(modelfile: string): {
+    from: string;
+    parameters: Record<string, unknown>;
+    system: string | undefined;
+    template: string | undefined;
+    adapter: string | undefined;
+    license: string | undefined;
+    messages: Array<{ role: string; content: string }>;
+    requires: string | undefined;
+    quantize: string | undefined;
+  } {
+    const result = {
+      from: '',
+      parameters: {} as Record<string, unknown>,
+      system: undefined as string | undefined,
+      template: undefined as string | undefined,
+      adapter: undefined as string | undefined,
+      license: undefined as string | undefined,
+      messages: [] as Array<{ role: string; content: string }>,
+      requires: undefined as string | undefined,
+      quantize: undefined as string | undefined,
+    };
+
+    // Extract FROM
+    const fromMatch = modelfile.match(/^FROM\s+([^\s\n]+)/im);
+    if (fromMatch) result.from = fromMatch[1];
+
+    // Extract SYSTEM (supports triple-quoted blocks)
+    const systemMatch = modelfile.match(/^SYSTEM\s+"""([\s\S]*?)"""/im) ||
+                        modelfile.match(/^SYSTEM\s+"([^"]*?)"/im) ||
+                        modelfile.match(/^SYSTEM\s+(.+)$/im);
+    if (systemMatch) result.system = systemMatch[1].trim();
+
+    // Extract TEMPLATE (supports triple-quoted blocks)
+    const templateMatch = modelfile.match(/^TEMPLATE\s+"""([\s\S]*?)"""/im) ||
+                          modelfile.match(/^TEMPLATE\s+"([^"]*?)"/im) ||
+                          modelfile.match(/^TEMPLATE\s+(.+)$/im);
+    if (templateMatch) result.template = templateMatch[1].trim();
+
+    // Extract ADAPTER
+    const adapterMatch = modelfile.match(/^ADAPTER\s+([^\s\n]+)/im);
+    if (adapterMatch) result.adapter = adapterMatch[1];
+
+    // Extract LICENSE (supports triple-quoted blocks)
+    const licenseMatch = modelfile.match(/^LICENSE\s+"""([\s\S]*?)"""/im) ||
+                         modelfile.match(/^LICENSE\s+"([^"]*?)"/im) ||
+                         modelfile.match(/^LICENSE\s+(.+)$/im);
+    if (licenseMatch) result.license = licenseMatch[1].trim();
+
+    // Extract REQUIRES
+    const requiresMatch = modelfile.match(/^REQUIRES\s+([^\s\n]+)/im);
+    if (requiresMatch) result.requires = requiresMatch[1];
+
+    // Extract PARAMETERS
+    const paramRegex = /^PARAMETER\s+(\w+)\s+(.+)$/gim;
+    let paramMatch;
+    while ((paramMatch = paramRegex.exec(modelfile)) !== null) {
+      const key = paramMatch[1].toLowerCase();
+      const rawValue = paramMatch[2].trim();
+
+      // Parse value based on type
+      if (rawValue === 'true') {
+        result.parameters[key] = true;
+      } else if (rawValue === 'false') {
+        result.parameters[key] = false;
+      } else {
+        const num = parseFloat(rawValue);
+        result.parameters[key] = isNaN(num) ? rawValue : num;
+      }
+    }
+
+    // Extract MESSAGE instructions
+    const messageRegex = /^MESSAGE\s+(system|user|assistant)\s+(.+)$/gim;
+    let messageMatch;
+    while ((messageMatch = messageRegex.exec(modelfile)) !== null) {
+      result.messages.push({
+        role: messageMatch[1].toLowerCase(),
+        content: messageMatch[2].trim(),
+      });
+    }
+
+    return result;
   }
 
   /**
@@ -216,11 +301,25 @@ class OllamaService {
   }
 
   /**
+   * Push a model to the registry
+   */
+  async pushModel(name: string, onProgress?: (progress: string) => void): Promise<void> {
+    try {
+      await ollamaClient.push(name, (progress) => {
+        onProgress?.(progress.status || 'Pushing...');
+      });
+    } catch (error) {
+      console.error('Error pushing model:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get model information
    */
-  async getModelInfo(name: string): Promise<any> {
+  async getModelInfo(name: string, verbose?: boolean): Promise<any> {
     try {
-      return await ollamaClient.show(name);
+      return await ollamaClient.show(name, verbose);
     } catch (error) {
       console.error('Error getting model info:', error);
       throw error;
@@ -236,6 +335,30 @@ class OllamaService {
     } catch (error) {
       console.error('Error fetching running models:', error);
       return [];
+    }
+  }
+
+  /**
+   * Load a model into memory
+   */
+  async loadModel(name: string, keepAlive: string = '5m'): Promise<void> {
+    try {
+      await ollamaClient.loadModel(name, keepAlive);
+    } catch (error) {
+      console.error('Error loading model:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Unload a model from memory
+   */
+  async unloadModel(name: string): Promise<void> {
+    try {
+      await ollamaClient.unloadModel(name);
+    } catch (error) {
+      console.error('Error unloading model:', error);
+      throw error;
     }
   }
 
@@ -269,14 +392,21 @@ class OllamaService {
   }
 
   /**
-   * Validate ModelFile syntax
+   * Validate ModelFile syntax comprehensively.
+   * Checks all instructions and all known parameters.
    */
-  validateModelFile(modelfile: string): { isValid: boolean; errors: string[] } {
+  validateModelFile(modelfile: string): { isValid: boolean; errors: string[]; warnings: string[] } {
     const errors: string[] = [];
-    const lines = modelfile.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#'));
+    const warnings: string[] = [];
 
-    // Check for FROM
-    const fromLines = lines.filter(l => l.toUpperCase().startsWith('FROM '));
+    // Remove comments and empty lines for parsing
+    const lines = modelfile
+      .split('\n')
+      .map(l => l.trim())
+      .filter(l => l && !l.startsWith('#'));
+
+    // Check for FROM (required)
+    const fromLines = lines.filter(l => /^FROM\s/i.test(l));
     if (fromLines.length === 0) {
       errors.push('ModelFile must contain a FROM instruction');
     } else if (fromLines.length > 1) {
@@ -288,28 +418,76 @@ class OllamaService {
       }
     }
 
-    // Validate parameters
-    const paramLines = lines.filter(l => l.toUpperCase().startsWith('PARAMETER '));
+    // Validate each line starts with a known instruction or is inside a multi-line block
+    let inMultiLineBlock = false;
+    for (const line of lines) {
+      if (inMultiLineBlock) {
+        if (line.includes('"""')) {
+          inMultiLineBlock = false;
+        }
+        continue;
+      }
+
+      if (line.includes('"""')) {
+        inMultiLineBlock = true;
+        // Check the instruction before the triple-quote
+        const instruction = line.split(/\s+/)[0].toUpperCase();
+        if (!MODELFILE_INSTRUCTIONS.includes(instruction as any) && instruction !== '#') {
+          warnings.push(`Unknown instruction: ${instruction}`);
+        }
+        continue;
+      }
+
+      const instruction = line.split(/\s+/)[0].toUpperCase();
+      if (!MODELFILE_INSTRUCTIONS.includes(instruction as any)) {
+        warnings.push(`Unknown instruction "${instruction}" on line: ${line.substring(0, 50)}`);
+      }
+    }
+
+    // Validate PARAMETER instructions
+    const paramLines = lines.filter(l => /^PARAMETER\s/i.test(l));
     for (const line of paramLines) {
       const parts = line.split(/\s+/);
       if (parts.length < 3) {
-        errors.push(`Invalid PARAMETER: ${line}`);
-      } else {
-        const paramName = parts[1].toLowerCase();
-        const paramValue = parts[2];
-        
-        // Validate numeric parameters
-        const numericParams = ['temperature', 'top_p', 'top_k', 'repeat_penalty', 'num_ctx', 'num_predict'];
-        if (numericParams.includes(paramName)) {
+        errors.push(`Invalid PARAMETER (missing value): ${line}`);
+        continue;
+      }
+
+      const paramName = parts[1].toLowerCase();
+      const paramValue = parts.slice(2).join(' ');
+
+      // Check if parameter name is known
+      if (!VALID_PARAMETER_NAMES.includes(paramName) && paramName !== 'stop') {
+        warnings.push(`Unknown parameter "${paramName}". Known parameters: ${VALID_PARAMETER_NAMES.join(', ')}, stop`);
+      }
+
+      // Validate numeric parameters
+      const numericParams = VALID_PARAMETER_NAMES.filter(p => p !== 'stop');
+      if (numericParams.includes(paramName)) {
+        if (paramValue !== 'true' && paramValue !== 'false') {
           const num = parseFloat(paramValue);
           if (isNaN(num)) {
-            errors.push(`Invalid numeric value for ${paramName}: ${paramValue}`);
+            errors.push(`Invalid value for ${paramName}: expected a number, got "${paramValue}"`);
           }
         }
       }
     }
 
-    return { isValid: errors.length === 0, errors };
+    // Validate MESSAGE instructions
+    const messageLines = lines.filter(l => /^MESSAGE\s/i.test(l));
+    for (const line of messageLines) {
+      const parts = line.split(/\s+/);
+      if (parts.length < 3) {
+        errors.push(`Invalid MESSAGE (missing role or content): ${line}`);
+        continue;
+      }
+      const role = parts[1].toLowerCase();
+      if (!['system', 'user', 'assistant'].includes(role)) {
+        errors.push(`Invalid MESSAGE role "${role}". Must be: system, user, or assistant`);
+      }
+    }
+
+    return { isValid: errors.length === 0, errors, warnings };
   }
 
   /**

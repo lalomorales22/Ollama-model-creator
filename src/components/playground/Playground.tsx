@@ -59,26 +59,30 @@ interface PlaygroundMessage {
   };
 }
 
-interface GenerationParams {
-  temperature: number;
-  topP: number;
-  topK: number;
-  repeatPenalty: number;
-  numPredict: number;
-  numCtx: number;
-  seed: number;
-  stop: string[];
-}
+import type { GenerationParams } from './ParameterPanel';
 
 const DEFAULT_PARAMS: GenerationParams = {
   temperature: 0.7,
   topP: 0.9,
   topK: 40,
+  minP: 0.0,
+  typicalP: 1.0,
   repeatPenalty: 1.1,
+  repeatLastN: 64,
+  presencePenalty: 0.0,
+  frequencyPenalty: 0.0,
   numPredict: 2048,
   numCtx: 4096,
-  seed: -1,
+  seed: 0,
   stop: [],
+  mirostat: 0,
+  mirostatTau: 5.0,
+  mirostatEta: 0.1,
+  numGpu: -1,
+  numThread: 0,
+  penalizeNewline: true,
+  format: '',
+  keepAlive: '5m',
 };
 
 const generateId = () => Math.random().toString(36).substring(2) + Date.now().toString(36);
@@ -168,21 +172,42 @@ export function Playground() {
       let lastChunk: any = null;
       const startTime = Date.now();
 
+      // Build options with all parameters
+      const options: Record<string, unknown> = {
+        temperature: params.temperature,
+        top_p: params.topP,
+        top_k: params.topK,
+        repeat_penalty: params.repeatPenalty,
+        num_predict: params.numPredict,
+        num_ctx: params.numCtx,
+      };
+      // Add optional parameters only when non-default
+      if (params.minP > 0) options.min_p = params.minP;
+      if (params.typicalP < 1) options.typical_p = params.typicalP;
+      if (params.repeatLastN !== 64) options.repeat_last_n = params.repeatLastN;
+      if (params.presencePenalty !== 0) options.presence_penalty = params.presencePenalty;
+      if (params.frequencyPenalty !== 0) options.frequency_penalty = params.frequencyPenalty;
+      if (params.seed > 0) options.seed = params.seed;
+      if (params.stop.length > 0) options.stop = params.stop;
+      if (params.mirostat > 0) {
+        options.mirostat = params.mirostat;
+        options.mirostat_tau = params.mirostatTau;
+        options.mirostat_eta = params.mirostatEta;
+      }
+      if (params.numGpu >= 0) options.num_gpu = params.numGpu;
+      if (params.numThread > 0) options.num_thread = params.numThread;
+      if (!params.penalizeNewline) options.penalize_newline = false;
+
       // Stream the response
-      const stream = ollamaClient.chatStream({
+      const chatRequest: Record<string, unknown> = {
         model: selectedModel,
         messages: chatMessages,
-        options: {
-          temperature: params.temperature,
-          top_p: params.topP,
-          top_k: params.topK,
-          repeat_penalty: params.repeatPenalty,
-          num_predict: params.numPredict,
-          num_ctx: params.numCtx,
-          seed: params.seed !== -1 ? params.seed : undefined,
-          stop: params.stop.length > 0 ? params.stop : undefined,
-        },
-      });
+        options,
+      };
+      if (params.format) chatRequest.format = params.format;
+      if (params.keepAlive && params.keepAlive !== '5m') chatRequest.keep_alive = params.keepAlive;
+
+      const stream = ollamaClient.chatStream(chatRequest as any);
 
       for await (const chunk of stream) {
         if (abortControllerRef.current?.signal.aborted) {

@@ -178,12 +178,12 @@ export function ModelFiles() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-black mb-2">ModelFiles</h1>
+          <h1 className="text-3xl font-bold dark:text-white mb-2">ModelFiles</h1>
           <p className="text-gray-600">Loading your ModelFiles collection...</p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[...Array(6)].map((_, i) => (
-            <Card key={i} className="p-6 border-4 border-black bg-white animate-pulse">
+            <Card key={i} className="p-6 border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 animate-pulse">
               <div className="h-32 bg-gray-200 rounded"></div>
             </Card>
           ))}
@@ -196,12 +196,12 @@ export function ModelFiles() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-black mb-2">ModelFiles</h1>
+          <h1 className="text-3xl font-bold dark:text-white mb-2">ModelFiles</h1>
           <p className="text-gray-600">Manage your collection of custom ModelFiles</p>
         </div>
         <Button
           onClick={() => navigate('/assistant')}
-          className="bg-black text-white hover:bg-gray-800 border-2 border-black"
+          className="bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 border-2 border-gray-200 dark:border-gray-700"
         >
           <Plus className="w-4 h-4 mr-2" />
           Create New ModelFile
@@ -209,26 +209,26 @@ export function ModelFiles() {
       </div>
 
       {/* Search */}
-      <Card className="p-4 border-4 border-black bg-white">
+      <Card className="p-4 border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
           <Input
             placeholder="Search ModelFiles by name, base model, or system prompt..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 border-2 border-black"
+            className="pl-10 border-2 border-gray-200 dark:border-gray-700"
           />
         </div>
       </Card>
 
       {/* ModelFiles Grid */}
       {filteredModelFiles.length === 0 ? (
-        <Card className="p-8 border-4 border-black bg-white text-center">
+        <Card className="p-8 border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-center">
           <div className="space-y-4">
             <div className="w-16 h-16 bg-black rounded-full flex items-center justify-center mx-auto">
               <FileText className="w-8 h-8 text-white" />
             </div>
-            <h3 className="text-xl font-bold text-black">No ModelFiles Found</h3>
+            <h3 className="text-xl font-bold dark:text-white">No ModelFiles Found</h3>
             <p className="text-gray-600">
               {searchTerm 
                 ? 'No ModelFiles match your search criteria.' 
@@ -236,7 +236,7 @@ export function ModelFiles() {
             </p>
             <Button
               onClick={() => navigate('/assistant')}
-              className="bg-black text-white hover:bg-gray-800 border-2 border-black"
+              className="bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 border-2 border-gray-200 dark:border-gray-700"
             >
               <Sparkles className="w-4 h-4 mr-2" />
               Create Your First ModelFile
@@ -246,7 +246,7 @@ export function ModelFiles() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredModelFiles.map((modelFile) => (
-            <Card key={modelFile.id} className="p-6 border-4 border-black bg-white hover:shadow-lg transition-shadow">
+            <Card key={modelFile.id} className="p-6 border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:shadow-lg transition-shadow">
               <div className="space-y-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center space-x-3">
@@ -254,8 +254,8 @@ export function ModelFiles() {
                       <FileText className="w-5 h-5 text-white" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-bold text-black">{modelFile.name}</h3>
-                      <Badge variant="outline" className="border-black text-xs">
+                      <h3 className="text-lg font-bold dark:text-white">{modelFile.name}</h3>
+                      <Badge variant="outline" className="border-gray-300 dark:border-gray-600 text-xs">
                         {modelFile.baseModel}
                       </Badge>
                     </div>
@@ -280,7 +280,7 @@ export function ModelFiles() {
                     onClick={() => handleView(modelFile)}
                     variant="outline"
                     size="sm"
-                    className="flex-1 border-2 border-black hover:bg-black hover:text-white"
+                    className="flex-1 border-2 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800"
                   >
                     <Eye className="w-4 h-4 mr-1" />
                     View
@@ -288,7 +288,7 @@ export function ModelFiles() {
                   <Button
                     onClick={() => handleUseForModel(modelFile)}
                     size="sm"
-                    className="flex-1 bg-black text-white hover:bg-gray-800 border-2 border-black"
+                    className="flex-1 bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 border-2 border-gray-200 dark:border-gray-700"
                   >
                     <Settings className="w-4 h-4 mr-1" />
                     Use
@@ -300,7 +300,7 @@ export function ModelFiles() {
                     onClick={() => handleEdit(modelFile)}
                     variant="outline"
                     size="sm"
-                    className="flex-1 border-2 border-black hover:bg-black hover:text-white"
+                    className="flex-1 border-2 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800"
                   >
                     <Edit className="w-4 h-4" />
                   </Button>
@@ -308,7 +308,7 @@ export function ModelFiles() {
                     onClick={() => handleDuplicate(modelFile)}
                     variant="outline"
                     size="sm"
-                    className="flex-1 border-2 border-black hover:bg-black hover:text-white"
+                    className="flex-1 border-2 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800"
                   >
                     <Copy className="w-4 h-4" />
                   </Button>
@@ -316,7 +316,7 @@ export function ModelFiles() {
                     onClick={() => handleDownload(modelFile)}
                     variant="outline"
                     size="sm"
-                    className="flex-1 border-2 border-black hover:bg-black hover:text-white"
+                    className="flex-1 border-2 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800"
                   >
                     <Download className="w-4 h-4" />
                   </Button>
@@ -337,9 +337,9 @@ export function ModelFiles() {
 
       {/* View Dialog */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="max-w-4xl border-4 border-black">
+        <DialogContent className="max-w-4xl border-2 border-gray-200 dark:border-gray-700">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-black">
+            <DialogTitle className="text-xl font-bold dark:text-white">
               {selectedModelFile?.name}
             </DialogTitle>
             <DialogDescription>
@@ -350,20 +350,20 @@ export function ModelFiles() {
             <Textarea
               value={selectedModelFile?.content || ''}
               readOnly
-              className="min-h-[400px] border-2 border-black font-mono text-sm bg-gray-50"
+              className="min-h-[400px] border-2 border-gray-200 dark:border-gray-700 font-mono text-sm bg-gray-50 dark:bg-gray-800 dark:text-gray-300"
             />
             <div className="flex space-x-2">
               <Button
                 onClick={() => selectedModelFile && handleDownload(selectedModelFile)}
                 variant="outline"
-                className="border-2 border-black hover:bg-black hover:text-white"
+                className="border-2 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800"
               >
                 <Download className="w-4 h-4 mr-2" />
                 Download
               </Button>
               <Button
                 onClick={() => selectedModelFile && handleUseForModel(selectedModelFile)}
-                className="bg-black text-white hover:bg-gray-800 border-2 border-black"
+                className="bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 border-2 border-gray-200 dark:border-gray-700"
               >
                 <Settings className="w-4 h-4 mr-2" />
                 Use for Model Creation
@@ -375,9 +375,9 @@ export function ModelFiles() {
 
       {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-4xl border-4 border-black">
+        <DialogContent className="max-w-4xl border-2 border-gray-200 dark:border-gray-700">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-black">
+            <DialogTitle className="text-xl font-bold dark:text-white">
               Edit ModelFile
             </DialogTitle>
             <DialogDescription>
@@ -387,32 +387,32 @@ export function ModelFiles() {
           {editingModelFile && (
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium text-black">Name</label>
+                <label className="text-sm font-medium dark:text-white">Name</label>
                 <Input
                   value={editingModelFile.name}
                   onChange={(e) => setEditingModelFile({ ...editingModelFile, name: e.target.value })}
-                  className="border-2 border-black"
+                  className="border-2 border-gray-200 dark:border-gray-700"
                 />
               </div>
               <div>
-                <label className="text-sm font-medium text-black">ModelFile Content</label>
+                <label className="text-sm font-medium dark:text-white">ModelFile Content</label>
                 <Textarea
                   value={editingModelFile.content}
                   onChange={(e) => setEditingModelFile({ ...editingModelFile, content: e.target.value })}
-                  className="min-h-[300px] border-2 border-black font-mono text-sm"
+                  className="min-h-[300px] border-2 border-gray-200 dark:border-gray-700 font-mono text-sm"
                 />
               </div>
               <div className="flex space-x-2">
                 <Button
                   onClick={() => setIsEditDialogOpen(false)}
                   variant="outline"
-                  className="border-2 border-black hover:bg-black hover:text-white"
+                  className="border-2 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800"
                 >
                   Cancel
                 </Button>
                 <Button
                   onClick={handleSaveEdit}
-                  className="bg-black text-white hover:bg-gray-800 border-2 border-black"
+                  className="bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 border-2 border-gray-200 dark:border-gray-700"
                 >
                   Save Changes
                 </Button>

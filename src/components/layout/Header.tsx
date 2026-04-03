@@ -10,7 +10,7 @@ export function Header() {
   const { setMobileSidebarOpen, setCommandPaletteOpen, sidebarCollapsed } = useUIStore();
 
   return (
-    <header className="fixed top-0 left-0 right-0 h-16 bg-white dark:bg-gray-950 border-b-4 border-black dark:border-gray-700 flex items-center justify-between px-4 md:px-6 z-40">
+    <header className="fixed top-0 left-0 right-0 h-16 bg-white dark:bg-gray-950 border-b-2 border-gray-200 dark:border-gray-700 flex items-center justify-between px-4 md:px-6 z-40">
       <div className="flex items-center space-x-3">
         {/* Mobile hamburger menu */}
         <Button

@@ -147,36 +147,36 @@ export function Help() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-black mb-2">Help & Documentation</h1>
-        <p className="text-gray-600">Learn how to use the Ollama Model Creator effectively</p>
+        <h1 className="text-3xl font-bold text-black dark:text-white mb-2">Help & Documentation</h1>
+        <p className="text-gray-600 dark:text-gray-400">Learn how to use the Ollama Model Creator effectively</p>
       </div>
 
       <Tabs defaultValue="guides" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 border-4 border-black bg-white">
+        <TabsList className="grid w-full grid-cols-4 border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
           <TabsTrigger 
             value="guides" 
-            className="data-[state=active]:bg-black data-[state=active]:text-white border-2 border-black"
+            className="data-[state=active]:bg-black data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-black border-2 border-gray-200 dark:border-gray-700"
           >
             <Book className="w-4 h-4 mr-2" />
             Guides
           </TabsTrigger>
           <TabsTrigger 
             value="faq" 
-            className="data-[state=active]:bg-black data-[state=active]:text-white border-2 border-black"
+            className="data-[state=active]:bg-black data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-black border-2 border-gray-200 dark:border-gray-700"
           >
             <HelpCircle className="w-4 h-4 mr-2" />
             FAQ
           </TabsTrigger>
           <TabsTrigger 
             value="reference" 
-            className="data-[state=active]:bg-black data-[state=active]:text-white border-2 border-black"
+            className="data-[state=active]:bg-black data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-black border-2 border-gray-200 dark:border-gray-700"
           >
             <Code className="w-4 h-4 mr-2" />
             Reference
           </TabsTrigger>
           <TabsTrigger 
             value="support" 
-            className="data-[state=active]:bg-black data-[state=active]:text-white border-2 border-black"
+            className="data-[state=active]:bg-black data-[state=active]:text-white dark:data-[state=active]:bg-white dark:data-[state=active]:text-black border-2 border-gray-200 dark:border-gray-700"
           >
             <MessageSquare className="w-4 h-4 mr-2" />
             Support
@@ -186,23 +186,23 @@ export function Help() {
         <TabsContent value="guides" className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {guides.map((guide, index) => (
-              <Card key={index} className="p-6 border-4 border-black bg-white">
+              <Card key={index} className="p-6 border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
                 <div className="flex items-center space-x-3 mb-4">
                   <div className="w-10 h-10 bg-black rounded-lg flex items-center justify-center">
                     <guide.icon className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-black">{guide.title}</h3>
-                    <p className="text-sm text-gray-600">{guide.description}</p>
+                    <h3 className="text-lg font-bold text-black dark:text-white">{guide.title}</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{guide.description}</p>
                   </div>
                 </div>
                 <ol className="space-y-2">
                   {guide.steps.map((step, stepIndex) => (
                     <li key={stepIndex} className="flex items-start space-x-3">
-                      <Badge variant="outline" className="border-black text-xs mt-0.5">
+                      <Badge variant="outline" className="border-gray-200 dark:border-gray-700 text-xs mt-0.5">
                         {stepIndex + 1}
                       </Badge>
-                      <span className="text-sm text-gray-700">{step}</span>
+                      <span className="text-sm text-gray-700 dark:text-gray-300">{step}</span>
                     </li>
                   ))}
                 </ol>
@@ -211,14 +211,14 @@ export function Help() {
           </div>
 
           {/* Quick Start Card */}
-          <Card className="p-6 border-4 border-black bg-gradient-to-r from-blue-50 to-purple-50">
+          <Card className="p-6 border-2 border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-800">
             <div className="flex items-center space-x-3 mb-4">
               <div className="w-12 h-12 bg-black rounded-lg flex items-center justify-center">
                 <Lightbulb className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-black">Quick Start</h3>
-                <p className="text-gray-600">Get up and running in 5 minutes</p>
+                <h3 className="text-xl font-bold text-black dark:text-white">Quick Start</h3>
+                <p className="text-gray-600 dark:text-gray-400">Get up and running in 5 minutes</p>
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -226,22 +226,22 @@ export function Help() {
                 <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center mx-auto mb-2">
                   <span className="text-white font-bold">1</span>
                 </div>
-                <h4 className="font-bold text-black">Download a Model</h4>
-                <p className="text-sm text-gray-600">Get llama3.2 from Downloads</p>
+                <h4 className="font-bold text-black dark:text-white">Download a Model</h4>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Get llama3.2 from Downloads</p>
               </div>
               <div className="text-center">
                 <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center mx-auto mb-2">
                   <span className="text-white font-bold">2</span>
                 </div>
-                <h4 className="font-bold text-black">Create ModelFile</h4>
-                <p className="text-sm text-gray-600">Use AI Assistant to generate</p>
+                <h4 className="font-bold text-black dark:text-white">Create ModelFile</h4>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Use AI Assistant to generate</p>
               </div>
               <div className="text-center">
                 <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center mx-auto mb-2">
                   <span className="text-white font-bold">3</span>
                 </div>
-                <h4 className="font-bold text-black">Build Model</h4>
-                <p className="text-sm text-gray-600">Create your custom model</p>
+                <h4 className="font-bold text-black dark:text-white">Build Model</h4>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Create your custom model</p>
               </div>
             </div>
           </Card>
@@ -249,14 +249,14 @@ export function Help() {
 
         <TabsContent value="faq" className="space-y-6">
           {/* Search */}
-          <Card className="p-4 border-4 border-black bg-white">
+          <Card className="p-4 border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
               <Input
                 placeholder="Search frequently asked questions..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 border-2 border-black"
+                className="pl-10 border-2 border-gray-200 dark:border-gray-700"
               />
             </div>
           </Card>
@@ -264,14 +264,14 @@ export function Help() {
           {/* FAQ Items */}
           <div className="space-y-4">
             {filteredFAQ.map((item, index) => (
-              <Card key={index} className="p-6 border-4 border-black bg-white">
+              <Card key={index} className="p-6 border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
                 <div className="flex items-start space-x-4">
                   <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center flex-shrink-0 mt-1">
                     <HelpCircle className="w-4 h-4 text-white" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-lg font-bold text-black mb-2">{item.question}</h3>
-                    <p className="text-gray-700 mb-3">{item.answer}</p>
+                    <h3 className="text-lg font-bold text-black dark:text-white mb-2">{item.question}</h3>
+                    <p className="text-gray-700 dark:text-gray-300 mb-3">{item.answer}</p>
                     <Badge variant="outline" className="border-gray-300 text-xs">
                       {item.category}
                     </Badge>
@@ -282,13 +282,13 @@ export function Help() {
           </div>
 
           {filteredFAQ.length === 0 && (
-            <Card className="p-8 border-4 border-black bg-white text-center">
+            <Card className="p-8 border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-center">
               <div className="space-y-4">
-                <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto">
+                <div className="w-16 h-16 bg-gray-200 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto">
                   <Search className="w-8 h-8 text-gray-400" />
                 </div>
-                <h3 className="text-xl font-bold text-black">No Results Found</h3>
-                <p className="text-gray-600">
+                <h3 className="text-xl font-bold text-black dark:text-white">No Results Found</h3>
+                <p className="text-gray-600 dark:text-gray-400">
                   No FAQ items match your search. Try different keywords or browse all categories.
                 </p>
               </div>
@@ -299,109 +299,109 @@ export function Help() {
         <TabsContent value="reference" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* ModelFile Syntax */}
-            <Card className="p-6 border-4 border-black bg-white">
-              <h3 className="text-xl font-bold text-black mb-4">ModelFile Syntax</h3>
+            <Card className="p-6 border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+              <h3 className="text-xl font-bold text-black dark:text-white mb-4">ModelFile Syntax</h3>
               <div className="space-y-4 text-sm">
                 <div>
-                  <code className="bg-gray-100 px-2 py-1 rounded font-mono">FROM &lt;model&gt;</code>
-                  <p className="text-gray-600 mt-1">Specify the base model to use</p>
+                  <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded font-mono">FROM &lt;model&gt;</code>
+                  <p className="text-gray-600 dark:text-gray-400 mt-1">Specify the base model to use</p>
                 </div>
                 <div>
-                  <code className="bg-gray-100 px-2 py-1 rounded font-mono">PARAMETER &lt;name&gt; &lt;value&gt;</code>
-                  <p className="text-gray-600 mt-1">Set model parameters</p>
+                  <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded font-mono">PARAMETER &lt;name&gt; &lt;value&gt;</code>
+                  <p className="text-gray-600 dark:text-gray-400 mt-1">Set model parameters</p>
                 </div>
                 <div>
-                  <code className="bg-gray-100 px-2 py-1 rounded font-mono">SYSTEM "&lt;prompt&gt;"</code>
-                  <p className="text-gray-600 mt-1">Define system behavior</p>
+                  <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded font-mono">SYSTEM "&lt;prompt&gt;"</code>
+                  <p className="text-gray-600 dark:text-gray-400 mt-1">Define system behavior</p>
                 </div>
                 <div>
-                  <code className="bg-gray-100 px-2 py-1 rounded font-mono">TEMPLATE "&lt;template&gt;"</code>
-                  <p className="text-gray-600 mt-1">Custom prompt template</p>
+                  <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded font-mono">TEMPLATE "&lt;template&gt;"</code>
+                  <p className="text-gray-600 dark:text-gray-400 mt-1">Custom prompt template</p>
                 </div>
               </div>
             </Card>
 
             {/* Parameters Reference */}
-            <Card className="p-6 border-4 border-black bg-white">
-              <h3 className="text-xl font-bold text-black mb-4">Common Parameters</h3>
+            <Card className="p-6 border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+              <h3 className="text-xl font-bold text-black dark:text-white mb-4">Common Parameters</h3>
               <div className="space-y-3 text-sm">
                 <div>
                   <strong>temperature</strong> <Badge variant="outline" className="ml-2">0.1-2.0</Badge>
-                  <p className="text-gray-600">Controls randomness (lower = more focused)</p>
+                  <p className="text-gray-600 dark:text-gray-400">Controls randomness (lower = more focused)</p>
                 </div>
                 <div>
                   <strong>top_p</strong> <Badge variant="outline" className="ml-2">0.1-1.0</Badge>
-                  <p className="text-gray-600">Nucleus sampling threshold</p>
+                  <p className="text-gray-600 dark:text-gray-400">Nucleus sampling threshold</p>
                 </div>
                 <div>
                   <strong>top_k</strong> <Badge variant="outline" className="ml-2">1-100</Badge>
-                  <p className="text-gray-600">Limits vocabulary for each step</p>
+                  <p className="text-gray-600 dark:text-gray-400">Limits vocabulary for each step</p>
                 </div>
                 <div>
                   <strong>num_ctx</strong> <Badge variant="outline" className="ml-2">512-32768</Badge>
-                  <p className="text-gray-600">Context window size</p>
+                  <p className="text-gray-600 dark:text-gray-400">Context window size</p>
                 </div>
                 <div>
                   <strong>repeat_penalty</strong> <Badge variant="outline" className="ml-2">0.5-2.0</Badge>
-                  <p className="text-gray-600">Penalizes repetition</p>
+                  <p className="text-gray-600 dark:text-gray-400">Penalizes repetition</p>
                 </div>
               </div>
             </Card>
 
             {/* CLI Commands */}
-            <Card className="p-6 border-4 border-black bg-white">
-              <h3 className="text-xl font-bold text-black mb-4">Useful Commands</h3>
+            <Card className="p-6 border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+              <h3 className="text-xl font-bold text-black dark:text-white mb-4">Useful Commands</h3>
               <div className="space-y-3">
                 <div>
                   <code className="bg-gray-900 text-green-400 px-3 py-2 rounded block font-mono text-sm">
                     ollama list
                   </code>
-                  <p className="text-gray-600 text-sm mt-1">List installed models</p>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">List installed models</p>
                 </div>
                 <div>
                   <code className="bg-gray-900 text-green-400 px-3 py-2 rounded block font-mono text-sm">
                     ollama pull llama3.2
                   </code>
-                  <p className="text-gray-600 text-sm mt-1">Download a model</p>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">Download a model</p>
                 </div>
                 <div>
                   <code className="bg-gray-900 text-green-400 px-3 py-2 rounded block font-mono text-sm">
                     ollama create mymodel -f Modelfile
                   </code>
-                  <p className="text-gray-600 text-sm mt-1">Create custom model</p>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">Create custom model</p>
                 </div>
                 <div>
                   <code className="bg-gray-900 text-green-400 px-3 py-2 rounded block font-mono text-sm">
                     ollama rm model-name
                   </code>
-                  <p className="text-gray-600 text-sm mt-1">Remove a model</p>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">Remove a model</p>
                 </div>
               </div>
             </Card>
 
             {/* Troubleshooting */}
-            <Card className="p-6 border-4 border-black bg-white">
-              <h3 className="text-xl font-bold text-black mb-4">Troubleshooting</h3>
+            <Card className="p-6 border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+              <h3 className="text-xl font-bold text-black dark:text-white mb-4">Troubleshooting</h3>
               <div className="space-y-3">
                 <div className="flex items-start space-x-3">
                   <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5" />
                   <div>
-                    <strong className="text-black">Connection Failed</strong>
-                    <p className="text-sm text-gray-600">Check if Ollama is running on port 11434</p>
+                    <strong className="text-black dark:text-white">Connection Failed</strong>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Check if Ollama is running on port 11434</p>
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
                   <AlertTriangle className="w-5 h-5 text-yellow-500 mt-0.5" />
                   <div>
-                    <strong className="text-black">Model Creation Slow</strong>
-                    <p className="text-sm text-gray-600">Large models take time, ensure sufficient disk space</p>
+                    <strong className="text-black dark:text-white">Model Creation Slow</strong>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Large models take time, ensure sufficient disk space</p>
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
                   <CheckCircle className="w-5 h-5 text-green-500 mt-0.5" />
                   <div>
-                    <strong className="text-black">Memory Issues</strong>
-                    <p className="text-sm text-gray-600">Monitor running models, unload unused ones</p>
+                    <strong className="text-black dark:text-white">Memory Issues</strong>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Monitor running models, unload unused ones</p>
                   </div>
                 </div>
               </div>
@@ -412,13 +412,13 @@ export function Help() {
         <TabsContent value="support" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Contact Support */}
-            <Card className="p-6 border-4 border-black bg-white">
-              <h3 className="text-xl font-bold text-black mb-4">Get Help</h3>
+            <Card className="p-6 border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+              <h3 className="text-xl font-bold text-black dark:text-white mb-4">Get Help</h3>
               <div className="space-y-4">
                 <Button
                   onClick={() => window.open('https://ollama.com/docs', '_blank')}
                   variant="outline"
-                  className="w-full justify-start border-2 border-black hover:bg-black hover:text-white"
+                  className="w-full justify-start border-2 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800"
                 >
                   <Book className="w-4 h-4 mr-2" />
                   Official Ollama Documentation
@@ -426,7 +426,7 @@ export function Help() {
                 <Button
                   onClick={() => window.open('https://github.com/ollama/ollama', '_blank')}
                   variant="outline"
-                  className="w-full justify-start border-2 border-black hover:bg-black hover:text-white"
+                  className="w-full justify-start border-2 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800"
                 >
                   <ExternalLink className="w-4 h-4 mr-2" />
                   Ollama GitHub Repository
@@ -434,7 +434,7 @@ export function Help() {
                 <Button
                   onClick={() => window.open('https://discord.gg/ollama', '_blank')}
                   variant="outline"
-                  className="w-full justify-start border-2 border-black hover:bg-black hover:text-white"
+                  className="w-full justify-start border-2 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800"
                 >
                   <MessageSquare className="w-4 h-4 mr-2" />
                   Join Ollama Discord
@@ -443,43 +443,43 @@ export function Help() {
             </Card>
 
             {/* System Info */}
-            <Card className="p-6 border-4 border-black bg-white">
-              <h3 className="text-xl font-bold text-black mb-4">System Information</h3>
+            <Card className="p-6 border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+              <h3 className="text-xl font-bold text-black dark:text-white mb-4">System Information</h3>
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">App Version:</span>
+                  <span className="text-gray-600 dark:text-gray-400">App Version:</span>
                   <span className="font-mono">1.0.0</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Ollama API:</span>
+                  <span className="text-gray-600 dark:text-gray-400">Ollama API:</span>
                   <span className="font-mono">localhost:11434</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Browser:</span>
+                  <span className="text-gray-600 dark:text-gray-400">Browser:</span>
                   <span className="font-mono">{navigator.userAgent.split(' ')[0]}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Platform:</span>
+                  <span className="text-gray-600 dark:text-gray-400">Platform:</span>
                   <span className="font-mono">{navigator.platform}</span>
                 </div>
               </div>
             </Card>
 
             {/* Resources */}
-            <Card className="p-6 border-4 border-black bg-white lg:col-span-2">
-              <h3 className="text-xl font-bold text-black mb-4">Additional Resources</h3>
+            <Card className="p-6 border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 lg:col-span-2">
+              <h3 className="text-xl font-bold text-black dark:text-white mb-4">Additional Resources</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="text-center">
                   <div className="w-12 h-12 bg-black rounded-lg flex items-center justify-center mx-auto mb-3">
                     <Video className="w-6 h-6 text-white" />
                   </div>
-                  <h4 className="font-bold text-black mb-2">Video Tutorials</h4>
-                  <p className="text-sm text-gray-600">Watch step-by-step guides on YouTube</p>
+                  <h4 className="font-bold text-black dark:text-white mb-2">Video Tutorials</h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Watch step-by-step guides on YouTube</p>
                   <Button
                     onClick={() => window.open('https://youtube.com/search?q=ollama+tutorial', '_blank')}
                     variant="outline"
                     size="sm"
-                    className="mt-2 border-2 border-black hover:bg-black hover:text-white"
+                    className="mt-2 border-2 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800"
                   >
                     Watch Now
                   </Button>
@@ -488,13 +488,13 @@ export function Help() {
                   <div className="w-12 h-12 bg-black rounded-lg flex items-center justify-center mx-auto mb-3">
                     <FileText className="w-6 h-6 text-white" />
                   </div>
-                  <h4 className="font-bold text-black mb-2">Model Library</h4>
-                  <p className="text-sm text-gray-600">Browse available models and examples</p>
+                  <h4 className="font-bold text-black dark:text-white mb-2">Model Library</h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Browse available models and examples</p>
                   <Button
                     onClick={() => window.open('https://ollama.com/library', '_blank')}
                     variant="outline"
                     size="sm"
-                    className="mt-2 border-2 border-black hover:bg-black hover:text-white"
+                    className="mt-2 border-2 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800"
                   >
                     Explore
                   </Button>
@@ -503,13 +503,13 @@ export function Help() {
                   <div className="w-12 h-12 bg-black rounded-lg flex items-center justify-center mx-auto mb-3">
                     <MessageSquare className="w-6 h-6 text-white" />
                   </div>
-                  <h4 className="font-bold text-black mb-2">Community</h4>
-                  <p className="text-sm text-gray-600">Connect with other Ollama users</p>
+                  <h4 className="font-bold text-black dark:text-white mb-2">Community</h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Connect with other Ollama users</p>
                   <Button
                     onClick={() => window.open('https://reddit.com/r/ollama', '_blank')}
                     variant="outline"
                     size="sm"
-                    className="mt-2 border-2 border-black hover:bg-black hover:text-white"
+                    className="mt-2 border-2 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800"
                   >
                     Join Discussion
                   </Button>

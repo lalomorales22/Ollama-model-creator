@@ -116,7 +116,7 @@ export function Dashboard() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {[...Array(4)].map((_, i) => (
-            <Card key={i} className="p-6 border-4 border-black dark:border-gray-700 bg-white dark:bg-gray-900 animate-pulse">
+            <Card key={i} className="p-6 border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 animate-pulse">
               <div className="h-16 bg-gray-200 dark:bg-gray-700 rounded"></div>
             </Card>
           ))}
@@ -143,7 +143,7 @@ export function Dashboard() {
             onClick={handleRefresh}
             size="sm"
             variant="outline"
-            className="border-2 border-black dark:border-gray-600 hover:bg-black hover:text-white dark:hover:bg-gray-700"
+            className="border-2 border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800"
             disabled={isConnecting}
           >
             <RefreshCw className={`w-4 h-4 mr-2 ${isConnecting ? 'animate-spin' : ''}`} />
@@ -177,7 +177,7 @@ export function Dashboard() {
       {/* Stats Cards */}
       <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-          <Card className={`p-6 border-4 ${hasError ? 'border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-950' : 'border-black dark:border-gray-700 bg-white dark:bg-gray-900'} cursor-pointer transition-shadow hover:shadow-lg`}
+          <Card className={`p-6 border-2 ${hasError ? 'border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-950' : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900'} cursor-pointer transition-shadow hover:shadow-lg`}
             onClick={() => navigate('/models')}
           >
             <div className="flex items-center justify-between">
@@ -194,7 +194,7 @@ export function Dashboard() {
         </motion.div>
 
         <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-          <Card className={`p-6 border-4 ${hasError ? 'border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-950' : 'border-black dark:border-gray-700 bg-white dark:bg-gray-900'} cursor-pointer transition-shadow hover:shadow-lg`}
+          <Card className={`p-6 border-2 ${hasError ? 'border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-950' : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900'} cursor-pointer transition-shadow hover:shadow-lg`}
             onClick={() => navigate('/running')}
           >
             <div className="flex items-center justify-between">
@@ -215,7 +215,7 @@ export function Dashboard() {
         </motion.div>
 
         <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-          <Card className={`p-6 border-4 ${hasError ? 'border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-950' : 'border-black dark:border-gray-700 bg-white dark:bg-gray-900'}`}>
+          <Card className={`p-6 border-2 ${hasError ? 'border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-950' : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900'}`}>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Total Size</p>
@@ -230,7 +230,7 @@ export function Dashboard() {
         </motion.div>
 
         <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-          <Card className={`p-6 border-4 ${hasError ? 'border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-950' : 'border-black dark:border-gray-700 bg-white dark:bg-gray-900'}`}>
+          <Card className={`p-6 border-2 ${hasError ? 'border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-950' : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900'}`}>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Ollama Version</p>
@@ -254,7 +254,7 @@ export function Dashboard() {
       {/* Charts Row */}
       <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Model Sizes Chart */}
-        <Card className="p-6 border-4 border-black dark:border-gray-700 bg-white dark:bg-gray-900">
+        <Card className="p-6 border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
           <h2 className="text-xl font-bold text-black dark:text-white mb-4 flex items-center">
             <TrendingUp className="w-5 h-5 mr-2" />
             Model Sizes (GB)
@@ -299,7 +299,7 @@ export function Dashboard() {
         </Card>
 
         {/* Storage Usage Pie Chart */}
-        <Card className="p-6 border-4 border-black dark:border-gray-700 bg-white dark:bg-gray-900">
+        <Card className="p-6 border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
           <h2 className="text-xl font-bold text-black dark:text-white mb-4 flex items-center">
             <HardDrive className="w-5 h-5 mr-2" />
             Storage Distribution
@@ -352,7 +352,7 @@ export function Dashboard() {
       {/* Quick Actions & Activity */}
       <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Quick Actions */}
-        <Card className="p-6 border-4 border-black dark:border-gray-700 bg-white dark:bg-gray-900">
+        <Card className="p-6 border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
           <h2 className="text-xl font-bold text-black dark:text-white mb-4 flex items-center">
             <Zap className="w-5 h-5 mr-2" />
             Quick Actions
@@ -361,7 +361,7 @@ export function Dashboard() {
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Button
                 onClick={() => navigate('/assistant')}
-                className="w-full h-20 bg-black dark:bg-gray-700 text-white hover:bg-gray-800 dark:hover:bg-gray-600 border-2 border-black dark:border-gray-600 flex flex-col items-center justify-center gap-2"
+                className="w-full h-20 bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 border-2 border-black dark:border-gray-600 flex flex-col items-center justify-center gap-2"
               >
                 <MessageSquare className="w-6 h-6" />
                 <span className="text-sm">AI Assistant</span>
@@ -372,7 +372,7 @@ export function Dashboard() {
               <Button
                 onClick={() => navigate('/create')}
                 variant="outline"
-                className="w-full h-20 border-2 border-black dark:border-gray-600 hover:bg-black hover:text-white dark:hover:bg-gray-700 flex flex-col items-center justify-center gap-2"
+                className="w-full h-20 border-2 border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 flex flex-col items-center justify-center gap-2"
               >
                 <Plus className="w-6 h-6" />
                 <span className="text-sm">Create Model</span>
@@ -383,7 +383,7 @@ export function Dashboard() {
               <Button
                 onClick={() => navigate('/models')}
                 variant="outline"
-                className="w-full h-20 border-2 border-black dark:border-gray-600 hover:bg-black hover:text-white dark:hover:bg-gray-700 flex flex-col items-center justify-center gap-2"
+                className="w-full h-20 border-2 border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 flex flex-col items-center justify-center gap-2"
               >
                 <Brain className="w-6 h-6" />
                 <span className="text-sm">View Models</span>
@@ -394,7 +394,7 @@ export function Dashboard() {
               <Button
                 onClick={() => navigate('/modelfiles')}
                 variant="outline"
-                className="w-full h-20 border-2 border-black dark:border-gray-600 hover:bg-black hover:text-white dark:hover:bg-gray-700 flex flex-col items-center justify-center gap-2"
+                className="w-full h-20 border-2 border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 flex flex-col items-center justify-center gap-2"
               >
                 <FileText className="w-6 h-6" />
                 <span className="text-sm">ModelFiles</span>
@@ -404,7 +404,7 @@ export function Dashboard() {
         </Card>
 
         {/* Recent Conversations */}
-        <Card className="p-6 border-4 border-black dark:border-gray-700 bg-white dark:bg-gray-900">
+        <Card className="p-6 border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
           <h2 className="text-xl font-bold text-black dark:text-white mb-4 flex items-center">
             <MessageSquare className="w-5 h-5 mr-2" />
             Recent Conversations
@@ -448,7 +448,7 @@ export function Dashboard() {
         </Card>
 
         {/* Recent Activity */}
-        <Card className="p-6 border-4 border-black dark:border-gray-700 bg-white dark:bg-gray-900">
+        <Card className="p-6 border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
           <h2 className="text-xl font-bold text-black dark:text-white mb-4 flex items-center">
             <Clock className="w-5 h-5 mr-2" />
             Recent Activity
@@ -486,7 +486,7 @@ export function Dashboard() {
 
       {/* System Status */}
       <motion.div variants={itemVariants}>
-        <Card className="p-6 border-4 border-black dark:border-gray-700 bg-white dark:bg-gray-900">
+        <Card className="p-6 border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
           <h2 className="text-xl font-bold text-black dark:text-white mb-4">System Status</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">

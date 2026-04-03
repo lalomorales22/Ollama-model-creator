@@ -69,13 +69,35 @@ export interface ModelFile {
 }
 
 export interface ModelFileParameters {
+  // Sampling
   temperature?: number;
   top_p?: number;
   top_k?: number;
+  min_p?: number;
+  typical_p?: number;
+  // Repetition
   repeat_penalty?: number;
+  repeat_last_n?: number;
+  presence_penalty?: number;
+  frequency_penalty?: number;
+  penalize_newline?: boolean;
+  // Generation
   num_ctx?: number;
   num_predict?: number;
+  seed?: number;
   stop?: string[];
+  // Performance
+  num_keep?: number;
+  num_batch?: number;
+  num_gpu?: number;
+  num_thread?: number;
+  main_gpu?: number;
+  use_mmap?: boolean;
+  numa?: boolean;
+  // Mirostat
+  mirostat?: number;
+  mirostat_tau?: number;
+  mirostat_eta?: number;
   [key: string]: unknown;
 }
 
@@ -85,13 +107,17 @@ export interface ModelFileParameters {
 
 export interface ChatMessage {
   id: string;
-  role: 'user' | 'assistant' | 'system';
+  role: 'user' | 'assistant' | 'system' | 'tool';
   content: string;
+  thinking?: string;
   timestamp: string;
   images?: string[];
   isStreaming?: boolean;
   model?: string;
   stats?: GenerationStats;
+  toolCalls?: Array<{
+    function: { name: string; arguments: Record<string, unknown> };
+  }>;
 }
 
 export interface Conversation {
@@ -217,12 +243,22 @@ export interface ModelCreationForm {
   name: string;
   baseModel: string;
   systemPrompt: string;
-  temperature: number;
-  maxTokens: number;
-  topP: number;
-  topK: number;
-  repeatPenalty: number;
+  template: string;
+  adapter: string;
+  license: string;
+  messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>;
+  requires: string;
+  quantize: '' | 'q4_K_M' | 'q4_K_S' | 'q8_0';
+  parameters: ModelFileParameters;
 }
+
+export interface PushModelRequest {
+  model: string;
+  insecure?: boolean;
+  stream?: boolean;
+}
+
+export type KeepAliveDuration = string | number; // e.g. "5m", "1h", 0, -1
 
 // ============================================
 // Utility Types
