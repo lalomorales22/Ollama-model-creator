@@ -150,7 +150,20 @@ class OllamaService {
       };
 
       if (parsed.system) createRequest.system = parsed.system;
-      if (parsed.template) createRequest.template = parsed.template;
+      // Only send template if it looks like valid Go template syntax.
+      // Malformed templates (e.g. from AI generation) cause 400 errors.
+      if (parsed.template) {
+        try {
+          // Basic sanity check: balanced {{ }} pairs
+          const opens = (parsed.template.match(/\{\{/g) || []).length;
+          const closes = (parsed.template.match(/\}\}/g) || []).length;
+          if (opens === closes && opens > 0) {
+            createRequest.template = parsed.template;
+          }
+        } catch {
+          // Skip template on any parse issue
+        }
+      }
       if (parsed.license) createRequest.license = parsed.license;
       // Note: adapters require pre-uploaded blob digests — path-based adapters
       // are handled by Ollama when using the modelfile string approach instead.
