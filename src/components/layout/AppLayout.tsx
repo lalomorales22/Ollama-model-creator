@@ -26,7 +26,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             "ml-0"
           )}
         >
-          <div className="max-w-7xl mx-auto h-full">
+          <div className="h-full">
             {children}
           </div>
         </main>
