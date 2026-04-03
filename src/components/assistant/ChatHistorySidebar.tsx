@@ -216,20 +216,16 @@ export function ChatHistorySidebar({ onNewChat }: ChatHistorySidebarProps) {
     <>
       {/* Toggle button when closed */}
       {!chatSidebarOpen && (
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="absolute left-0 top-4 z-10"
-        >
+        <div className="flex-shrink-0">
           <Button
             variant="outline"
             size="sm"
             onClick={toggleChatSidebar}
-            className="rounded-l-none border-l-0 border-2 border-black dark:border-gray-600"
+            className="h-full rounded-lg border-2 border-gray-200 dark:border-gray-700 px-1"
           >
             <ChevronRight className="w-4 h-4" />
           </Button>
-        </motion.div>
+        </div>
       )}
 
       <AnimatePresence mode="wait">
@@ -239,12 +235,12 @@ export function ChatHistorySidebar({ onNewChat }: ChatHistorySidebarProps) {
             initial="closed"
             animate="open"
             exit="closed"
-            className="h-full border-r-2 border-black dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex flex-col overflow-hidden"
+            className="h-full border-2 border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 flex flex-col overflow-hidden flex-shrink-0"
           >
             {/* Header */}
-            <div className="p-3 border-b-2 border-gray-200 dark:border-gray-700">
+            <div className="p-3 border-b border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="font-bold text-black dark:text-white">Chat History</h3>
+                <h3 className="font-bold dark:text-white text-sm">Chat History</h3>
                 <Button
                   variant="ghost"
                   size="sm"
