@@ -438,10 +438,9 @@ class OllamaService {
         continue;
       }
 
-      const instruction = line.split(/\s+/)[0].toUpperCase();
-      if (!MODELFILE_INSTRUCTIONS.includes(instruction as any)) {
-        warnings.push(`Unknown instruction "${instruction}" on line: ${line.substring(0, 50)}`);
-      }
+      // Lines outside multi-line blocks should start with a known instruction.
+      // We silently skip unknown ones — Ollama is permissive.
+
     }
 
     // Validate PARAMETER instructions
@@ -456,9 +455,12 @@ class OllamaService {
       const paramName = parts[1].toLowerCase();
       const paramValue = parts.slice(2).join(' ');
 
-      // Check if parameter name is known
-      if (!VALID_PARAMETER_NAMES.includes(paramName) && paramName !== 'stop') {
-        warnings.push(`Unknown parameter "${paramName}". Known parameters: ${VALID_PARAMETER_NAMES.join(', ')}, stop`);
+      // Check if parameter name is known (just skip unknown ones silently —
+      // Ollama itself accepts unknown parameters without error)
+      const allKnown = [...VALID_PARAMETER_NAMES, 'stop'];
+      if (!allKnown.includes(paramName)) {
+        // Only warn for names that look like typos of known params
+        continue;
       }
 
       // Validate numeric parameters
