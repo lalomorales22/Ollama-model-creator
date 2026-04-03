@@ -162,7 +162,24 @@ class OllamaService {
       if (parsed.license) createRequest.license = parsed.license;
       // Note: adapters require pre-uploaded blob digests — path-based adapters
       // are handled by Ollama when using the modelfile string approach instead.
-      if (Object.keys(parsed.parameters).length > 0) createRequest.parameters = parsed.parameters;
+      // Filter parameters to only known valid ones — AI-generated Modelfiles
+      // often include invented params like "stop_token" that cause 500 errors.
+      if (Object.keys(parsed.parameters).length > 0) {
+        const validNames = [...VALID_PARAMETER_NAMES, 'stop'];
+        const cleanParams: Record<string, unknown> = {};
+        for (const [key, value] of Object.entries(parsed.parameters)) {
+          if (!validNames.includes(key)) continue;
+          // Clean stop values — strip extra quotes
+          if (key === 'stop' && typeof value === 'string') {
+            cleanParams[key] = value.replace(/^["']+|["']+$/g, '');
+          } else {
+            cleanParams[key] = value;
+          }
+        }
+        if (Object.keys(cleanParams).length > 0) {
+          createRequest.parameters = cleanParams;
+        }
+      }
       if (parsed.messages.length > 0) createRequest.messages = parsed.messages;
       if (parsed.quantize) createRequest.quantize = parsed.quantize;
 
