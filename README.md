@@ -1,6 +1,7 @@
 # Ollama Model Creator
 
-<img width="1388" alt="Screenshot 2025-06-29 at 5 03 37 AM" src="https://github.com/user-attachments/assets/a1d74382-76b1-49e2-b5d7-246c71f72a0f" />
+<img width="929" height="860" alt="Screenshot 2026-04-03 at 11 29 08 AM" src="https://github.com/user-attachments/assets/59d7acce-1e21-4b62-bd51-9c2070af5d71" />
+
 
 The definitive companion app for [Ollama](https://ollama.com). Create custom models with a full Modelfile editor, manage running models, test with a live playground, compare models side-by-side, and more — all from a modern web UI with complete Ollama API coverage.
 
