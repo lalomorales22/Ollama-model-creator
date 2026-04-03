@@ -186,13 +186,13 @@ export function ModelCard({ model, onModelDeleted, onModelCopied, isRunning = fa
       onMouseLeave={handleMouseLeave}
       className="relative"
     >
-      <Card 
+      <Card
         className={cn(
-          "p-6 border-4 bg-white dark:bg-gray-900 transition-all duration-300",
-          isRunning 
-            ? "border-green-500 dark:border-green-600" 
-            : "border-black dark:border-gray-700",
-          isHovered && "shadow-2xl"
+          "p-5 border-2 bg-white dark:bg-gray-900 transition-all duration-300 overflow-hidden",
+          isRunning
+            ? "border-green-500 dark:border-green-600"
+            : "border-gray-200 dark:border-gray-700",
+          isHovered && "shadow-xl"
         )}
         style={{
           transform: 'translateZ(0)',
@@ -209,30 +209,30 @@ export function ModelCard({ model, onModelDeleted, onModelCopied, isRunning = fa
           </motion.div>
         )}
 
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center space-x-3">
-            <motion.div 
+        <div className="flex items-start justify-between gap-2 mb-4">
+          <div className="flex items-center space-x-3 min-w-0">
+            <motion.div
               className={cn(
-                "w-12 h-12 rounded-lg flex items-center justify-center",
+                "w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0",
                 isRunning ? "bg-green-500" : "bg-black dark:bg-gray-700"
               )}
               whileHover={{ scale: 1.1, rotate: 5 }}
               transition={{ type: 'spring', stiffness: 300 }}
             >
-              <Brain className="w-6 h-6 text-white" />
+              <Brain className="w-5 h-5 text-white" />
             </motion.div>
-            <div>
-              <h3 className="text-lg font-bold text-black dark:text-white">{model.name}</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">{model.details.family}</p>
+            <div className="min-w-0">
+              <h3 className="text-sm font-bold text-black dark:text-white truncate" title={model.name}>{model.name}</h3>
+              <p className="text-xs text-gray-600 dark:text-gray-400">{model.details.family}</p>
             </div>
           </div>
-          
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="border-2 border-black dark:border-gray-600 hover:bg-black hover:text-white dark:hover:bg-gray-700"
+              <Button
+                variant="ghost"
+                size="sm"
+                className="flex-shrink-0 h-8 w-8 p-0 border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800"
               >
                 <MoreVertical className="w-4 h-4" />
               </Button>

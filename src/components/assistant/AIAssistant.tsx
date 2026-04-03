@@ -273,7 +273,7 @@ export function AIAssistant() {
 
         {/* Messages */}
         <ScrollArea className="flex-1 min-h-0">
-          <div className="p-4 space-y-4 max-w-3xl mx-auto">
+          <div className="p-4 space-y-4">
             {messages.map((message) => (
               <motion.div
                 key={message.id}
@@ -333,7 +333,7 @@ export function AIAssistant() {
 
         {/* Input */}
         <div className="p-3 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
-          <div className="flex gap-2 max-w-3xl mx-auto">
+          <div className="flex gap-2">
             <Input
               ref={inputRef}
               value={input}
