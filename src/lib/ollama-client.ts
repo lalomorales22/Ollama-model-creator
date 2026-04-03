@@ -262,7 +262,16 @@ class OllamaClient {
    */
   async delete(model: string): Promise<void> {
     try {
-      await this.client.delete({ model });
+      // Use direct fetch — the SDK's delete can 404 on some Ollama versions
+      const response = await fetch(`${this._host}/api/delete`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: model }),
+      });
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || `Delete failed with status ${response.status}`);
+      }
     } catch (error) {
       this.handleError(error);
       throw error;
