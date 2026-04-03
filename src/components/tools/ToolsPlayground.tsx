@@ -258,7 +258,7 @@ export function ToolsPlayground() {
   };
 
   return (
-    <div className="h-[calc(100vh-4rem)] flex">
+    <div className="h-full flex">
       {/* Tool Builder Panel */}
       <div className="w-[400px] border-r-2 border-black dark:border-gray-700 overflow-hidden">
         <ScrollArea className="h-full">

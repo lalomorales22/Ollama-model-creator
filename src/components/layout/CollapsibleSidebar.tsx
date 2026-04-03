@@ -279,7 +279,7 @@ export function Sidebar() {
         variants={sidebarVariants}
         initial={false}
         animate={sidebarCollapsed ? 'collapsed' : 'expanded'}
-        className="hidden md:block fixed left-0 top-16 h-[calc(100vh-4rem)] bg-white dark:bg-gray-950 border-r-4 border-black dark:border-gray-700 overflow-hidden z-30"
+        className="hidden md:block fixed left-0 top-16 h-[calc(100vh-4rem)] bg-white dark:bg-gray-950 border-r-2 border-gray-200 dark:border-gray-700 overflow-hidden z-30"
       >
         <SidebarContent />
       </motion.aside>

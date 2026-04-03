@@ -459,7 +459,7 @@ export function ModelFileEditor({ initialContent, onSave }: ModelFileEditorProps
 
   return (
     <TooltipProvider>
-      <div className="h-[calc(100vh-4rem)] flex flex-col">
+      <div className="h-full flex flex-col">
         {/* Toolbar */}
         <div className="flex items-center justify-between p-4 border-b-2 border-black dark:border-gray-700">
           <div className="flex items-center gap-4">

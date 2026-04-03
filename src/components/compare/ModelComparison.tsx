@@ -259,7 +259,7 @@ export function ModelComparison() {
   const availableModels = models.filter(m => !selectedModels.includes(m.name));
 
   return (
-    <div className="h-[calc(100vh-4rem)] flex flex-col">
+    <div className="h-full flex flex-col">
       {/* Header */}
       <div className="p-4 border-b-2 border-black dark:border-gray-700">
         <div className="flex items-center justify-between mb-4">

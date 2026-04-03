@@ -240,7 +240,7 @@ export function EmbeddingsPlayground() {
   const embeddedCount = entries.filter(e => e.embedding).length;
 
   return (
-    <div className="h-[calc(100vh-4rem)] flex">
+    <div className="h-full flex">
       {/* Main Panel */}
       <div className="flex-1 flex flex-col">
         {/* Header */}

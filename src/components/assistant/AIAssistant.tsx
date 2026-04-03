@@ -226,7 +226,7 @@ export function AIAssistant() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-5rem)] gap-4">
+    <div className="flex h-full gap-3">
       {/* Chat History Sidebar */}
       <ChatHistorySidebar onNewChat={handleNewChat} />
 
