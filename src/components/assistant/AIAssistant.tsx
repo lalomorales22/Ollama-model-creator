@@ -363,70 +363,72 @@ export function AIAssistant() {
         </div>
       </div>
 
-      {/* Right Sidebar - compact */}
-      <div className="hidden lg:flex flex-col w-64 flex-shrink-0 border-2 border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 overflow-hidden">
-        {/* ModelFile Output */}
-        <div className="p-3 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-xs font-bold dark:text-white uppercase tracking-wide text-gray-500">ModelFile Output</h3>
-            <div className="flex gap-1">
-              <Button onClick={handleCopyModelFile} disabled={!generatedModelFile} variant="ghost" size="sm" className="h-6 w-6 p-0">
-                <Copy className="w-3 h-3" />
-              </Button>
-              <Button onClick={handleSaveModelFile} disabled={!generatedModelFile} variant="ghost" size="sm" className="h-6 w-6 p-0">
-                <Download className="w-3 h-3" />
-              </Button>
+      {/* Right Sidebar - fixed to viewport, scrolls internally */}
+      <div className="hidden lg:flex flex-col w-64 flex-shrink-0 max-h-full border-2 border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900">
+        <ScrollArea className="flex-1">
+          {/* ModelFile Output */}
+          <div className="p-3 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-xs font-bold dark:text-white uppercase tracking-wide text-gray-500">ModelFile Output</h3>
+              <div className="flex gap-1">
+                <Button onClick={handleCopyModelFile} disabled={!generatedModelFile} variant="ghost" size="sm" className="h-6 w-6 p-0">
+                  <Copy className="w-3 h-3" />
+                </Button>
+                <Button onClick={handleSaveModelFile} disabled={!generatedModelFile} variant="ghost" size="sm" className="h-6 w-6 p-0">
+                  <Download className="w-3 h-3" />
+                </Button>
+              </div>
             </div>
+            <Textarea
+              value={generatedModelFile}
+              onChange={(e) => setGeneratedModelFile(e.target.value)}
+              placeholder="ModelFile appears here when the AI generates one..."
+              className="h-28 min-h-0 text-xs font-mono border border-gray-200 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 resize-none"
+            />
+            {generatedModelFile && (
+              <div className="mt-2 flex gap-1.5">
+                <Input
+                  value={modelFileName}
+                  onChange={(e) => setModelFileName(e.target.value)}
+                  placeholder="Name..."
+                  className="text-xs h-7 border border-gray-200 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                />
+                <Button
+                  onClick={handleAddToModelFiles}
+                  disabled={!generatedModelFile || !modelFileName.trim()}
+                  className="bg-green-600 text-white hover:bg-green-700 h-7 px-2 text-xs flex-shrink-0"
+                  size="sm"
+                >
+                  <Plus className="w-3 h-3" />
+                </Button>
+              </div>
+            )}
           </div>
-          <Textarea
-            value={generatedModelFile}
-            onChange={(e) => setGeneratedModelFile(e.target.value)}
-            placeholder="ModelFile appears here when the AI generates one..."
-            className="h-28 min-h-0 text-xs font-mono border border-gray-200 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 resize-none"
-          />
-          {generatedModelFile && (
-            <div className="mt-2 flex gap-1.5">
-              <Input
-                value={modelFileName}
-                onChange={(e) => setModelFileName(e.target.value)}
-                placeholder="Name..."
-                className="text-xs h-7 border border-gray-200 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-              />
-              <Button
-                onClick={handleAddToModelFiles}
-                disabled={!generatedModelFile || !modelFileName.trim()}
-                className="bg-green-600 text-white hover:bg-green-700 h-7 px-2 text-xs flex-shrink-0"
-                size="sm"
-              >
-                <Plus className="w-3 h-3" />
-              </Button>
-            </div>
-          )}
-        </div>
 
-        {/* Quick Prompts */}
-        <div className="p-3 flex-shrink-0">
-          <h3 className="text-xs font-bold dark:text-white uppercase tracking-wide text-gray-500 mb-2">Quick Prompts</h3>
-          <div className="space-y-1">
-            {[
-              { label: 'Coding Assistant', prompt: 'Create a ModelFile for a helpful coding assistant based on llama3.2 with temperature 0.7, focused on providing clean code examples with explanations' },
-              { label: 'Creative Writer', prompt: 'Create a ModelFile for a creative writing assistant that helps with storytelling, character development, and creative writing techniques' },
-              { label: 'Documentation', prompt: 'Create a ModelFile for a technical documentation specialist that creates clear, accurate, and well-structured documentation' },
-              { label: 'Data Analyst', prompt: 'Create a ModelFile for a data analysis assistant that helps interpret data, create visualizations, and explain statistical concepts' },
-            ].map((item) => (
-              <Button
-                key={item.label}
-                onClick={() => setInput(item.prompt)}
-                variant="ghost"
-                size="sm"
-                className="w-full justify-start text-xs h-7 hover:bg-gray-100 dark:hover:bg-gray-800 px-2"
-              >
-                <Sparkles className="w-3 h-3 mr-1.5 text-purple-500 flex-shrink-0" />
-                {item.label}
-              </Button>
-            ))}
+          {/* Quick Prompts */}
+          <div className="p-3">
+            <h3 className="text-xs font-bold dark:text-white uppercase tracking-wide text-gray-500 mb-2">Quick Prompts</h3>
+            <div className="space-y-1">
+              {[
+                { label: 'Coding Assistant', prompt: 'Create a ModelFile for a helpful coding assistant based on llama3.2 with temperature 0.7, focused on providing clean code examples with explanations' },
+                { label: 'Creative Writer', prompt: 'Create a ModelFile for a creative writing assistant that helps with storytelling, character development, and creative writing techniques' },
+                { label: 'Documentation', prompt: 'Create a ModelFile for a technical documentation specialist that creates clear, accurate, and well-structured documentation' },
+                { label: 'Data Analyst', prompt: 'Create a ModelFile for a data analysis assistant that helps interpret data, create visualizations, and explain statistical concepts' },
+              ].map((item) => (
+                <Button
+                  key={item.label}
+                  onClick={() => setInput(item.prompt)}
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start text-xs h-7 hover:bg-gray-100 dark:hover:bg-gray-800 px-2"
+                >
+                  <Sparkles className="w-3 h-3 mr-1.5 text-purple-500 flex-shrink-0" />
+                  {item.label}
+                </Button>
+              ))}
+            </div>
           </div>
-        </div>
+        </ScrollArea>
       </div>
     </div>
   );
